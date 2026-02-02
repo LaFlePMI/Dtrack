@@ -1980,20 +1980,20 @@ updateTask(id, changes) {
             <input id="tags-${task.id}" class="nexus-input" style="width:100%; margin-bottom:5px;" placeholder="Tags (comma separated)" value="${(task.tags||[]).join(', ')}">
             
             <div style="display:flex; gap:5px; margin-bottom:5px;">
-                <select class="nexus-input" style="flex:1;" onchange="app.updateTask('${task.id}', {status: this.value})">
+                <select class="nexus-input" style="flex:1;" onchange="handleUpdateTask('${task.id}', {status: this.value})">
                   <option value="none" ${task.status==='none'?'selected':''}>Pending</option>
                   <option value="inprocess" ${task.status==='inprocess'?'selected':''}>In Process</option>
                   <option value="offline" ${task.status==='offline'?'selected':''}>Blocked</option>
                   <option value="complete" ${task.status==='complete'?'selected':''}>Complete</option>
                 </select>
-                <select class="nexus-input" style="flex:1;" onchange="app.updateTask('${task.id}', {priority: this.value})">
+                <select class="nexus-input" style="flex:1;" onchange="handleUpdateTask('${task.id}', {priority: this.value})">
                   <option value="low" ${task.priority==='low'?'selected':''}>Low</option>
                   <option value="medium" ${task.priority==='medium'?'selected':''}>Med</option>
                   <option value="high" ${task.priority==='high'?'selected':''}>High</option>
                 </select>
             </div>
             
-            <input type="date" class="nexus-input" style="width:100%; margin-bottom:5px;" value="${task.date}" onchange="app.updateTask('${task.id}', {date: this.value})">
+            <input type="date" class="nexus-input" style="width:100%; margin-bottom:5px;" value="${task.date}" onchange="handleUpdateTask('${task.id}', {date: this.value})">
             <textarea id="notes-${task.id}" class="nexus-input" style="width:100%; min-height:80px;" placeholder="Notes or Subtasks (- [ ] Item)" onkeydown="if(event.key==='Enter' && (event.ctrlKey||event.metaKey)){event.preventDefault(); app.saveAndCollapseTaskCard('${task.id}');}">${task.notes}</textarea>
             
             <button class="btn btn-primary" style="width:100%; margin-top:5px;" onclick="app.saveAndCollapseTaskCard('${task.id}')">SAVE</button>
@@ -4020,9 +4020,37 @@ try { Object.defineProperty(window, 'app', { writable: false, configurable: fals
 // Diagnostic: check in Console after reload
 console.log('[clarity check]', window.app?.constructor?.name, 'updateTask =', typeof window.app?.updateTask);
 </script>
+   
+<script>
+/* Global helper that always works, even if app.updateTask is missing */
+window.handleUpdateTask = function(id, changes) {
+  try {
+    if (!window.app || !window.app.state || !Array.isArray(window.app.state.tasks)) {
+      console.warn('App not ready yet'); 
+      return;
+    }
+    // record history if available
+    if (window.app.historyManager?.push) window.app.historyManager.push();
+
+    // apply the change to the task
+    const t = window.app.state.tasks.find(x => x.id === id);
+    if (!t) { console.warn('Task not found:', id); return; }
+    Object.assign(t, changes);
+
+    // save + re-render (if those functions exist)
+    window.app.saveState?.();
+    window.app.renderBoard?.();
+    window.app.showToast?.('Task updated');
+  } catch (e) {
+    console.error('handleUpdateTask failed:', e);
+  }
+};
+</script>
+
 
 </body>
 </html>
+
 
 
 
