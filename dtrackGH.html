@@ -1287,7 +1287,20 @@ login() {
         this.showToast("Save Failed: " + error.message, "error");
       });
   }
+updateTask(id, changes) {
+    this.historyManager.push();
+    
+    const task = this.state.tasks.find(t => t.id === id);
+    if (!task) return;
 
+    Object.assign(task, changes);
+
+    this.saveState();
+    this.renderBoard();
+    
+    // Optional: show feedback
+    this.showToast("Task updated");
+  }
 
   addTask(person, title) {
     if (!title.trim()) return;
@@ -4000,6 +4013,7 @@ document.addEventListener('DOMContentLoaded', () => {
 </body>
 
 </html>
+
 
 
 
