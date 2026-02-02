@@ -1117,7 +1117,7 @@ class ClarityApp {
     // We don't want the app to "start" until the login is successful.
     
     // 4. Set up the event listeners so buttons like "Add Task" work later
-    this.initEventListeners();
+    if (this.initEventListeners) this.initEventListeners();
   }
 login() {
     const email = document.getElementById('login-email').value;
@@ -4000,5 +4000,6 @@ document.addEventListener('DOMContentLoaded', () => {
 </body>
 
 </html>
+
 
 
