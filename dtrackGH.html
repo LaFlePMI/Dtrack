@@ -3982,6 +3982,20 @@ document.addEventListener('DOMContentLoaded', () => {
 
   document.getElementById('login-btn').disabled = false;
 </script>
+   <script>
+  console.log('boot script loaded');
+
+  window.app = {
+    login() {
+      console.log('login clicked');
+      document.getElementById('login-overlay').style.display = 'none';
+    }
+  };
+
+  document.getElementById('login-btn').disabled = false;
+</script>
+
 </body>
 
 </html>
+
