@@ -457,7 +457,7 @@ body {
       
       <input id="search-input" class="nexus-input" placeholder="Filter tasks..." oninput="app.handleSearch(this.value)">
       
-      <select class="nexus-input" style="width:150px;" onchange="app.setTheme(this.value)">
+      <select class="nexus-input" style="width:150px;" onchange="window.app?.setTheme(this.value)">
         <option value="void">Theme: Void</option>
         <option value="core">Theme: Core</option>
         <option value="paper">Theme: Paper</option>
@@ -475,7 +475,7 @@ body {
     <div class="control-group">
       <button id="hud-settings-btn" class="btn" onclick="app.openHudSettingsModal()">⚙️ Settings</button>
     </div>
-    <div id="hud-toggle" onclick="app.toggleHud()" style="cursor:pointer; margin-top:8px; text-align:center; color:var(--text-muted); font-size:0.85rem;">HIDE CONTROLS</div>
+    <div id="hud-toggle" onclick="window.app?.toggleHud()" style="cursor:pointer; margin-top:8px; text-align:center; color:var(--text-muted); font-size:0.85rem;">HIDE CONTROLS</div>
   </div>
 </div>
 </div>
@@ -4000,6 +4000,7 @@ document.addEventListener('DOMContentLoaded', () => {
 </body>
 
 </html>
+
 
 
 
