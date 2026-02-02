@@ -3990,9 +3990,36 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 </script>
 
+<script>
+// Ensure we have a ClarityApp instance
+if (!(window.app instanceof ClarityApp)) {
+  window.app = new ClarityApp();
+}
+
+// If this build doesn't have updateTask, define it now
+if (typeof ClarityApp?.prototype?.updateTask !== 'function') {
+  ClarityApp.prototype.updateTask = function (id, changes) {
+    this.historyManager.push();
+    const task = this.state.tasks.find(t => t.id === id);
+    if (!task) { console.warn('Task not found for update:', id); return; }
+    Object.assign(task, changes);
+    this.saveState();
+    this.renderBoard();
+    this.showToast('Task updated');
+  };
+}
+
+// Optional: guard against later overwrites of window.app
+try { Object.defineProperty(window, 'app', { writable: false, configurable: false }); } catch {}
+
+// Diagnostic: check in Console after reload
+console.log('[clarity check]', window.app?.constructor?.name, 'updateTask =', typeof window.app?.updateTask);
+</script>
+
 </body>
 
 </html>
+
 
 
 
