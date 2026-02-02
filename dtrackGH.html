@@ -1289,16 +1289,20 @@ login() {
   }
 updateTask(id, changes) {
     this.historyManager.push();
-    
-    const task = this.state.tasks.find(t => t.id === id);
-    if (!task) return;
 
+    const task = this.state.tasks.find(t => t.id === id);
+    if (!task) {
+      console.warn('Task not found for update:', id);
+      return;
+    }
+
+    // Apply the changes
     Object.assign(task, changes);
 
+    // Save and re-render
     this.saveState();
     this.renderBoard();
-    
-    // Optional: show feedback
+
     this.showToast("Task updated");
   }
 
@@ -4013,6 +4017,7 @@ document.addEventListener('DOMContentLoaded', () => {
 </body>
 
 </html>
+
 
 
 
