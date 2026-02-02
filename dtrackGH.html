@@ -3971,5 +3971,17 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     }, 250);
 });
+   <script>
+  window.app = {
+    login() {
+      console.log('login clicked');
+      document.getElementById('login-overlay').style.display = 'none';
+      document.getElementById('login-btn').disabled = false;
+    }
+  };
+
+  document.getElementById('login-btn').disabled = false;
+</script>
 </body>
+
 </html>
