@@ -3967,46 +3967,51 @@ class DefectTracker {
   };
 }
 
+<script>
 var app;
 document.addEventListener('DOMContentLoaded', () => {
   app = new ClarityApp();
   window.app = app;
-    try { const lb = document.getElementById('login-btn'); if (lb) lb.disabled = false; } catch(e){}
 
-    // Verify Firebase libs loaded correctly. If CDN returned HTML (404/blocked) the global
-    // `firebase` or compat modules may not be present which causes mysterious "expected '<'" syntax errors.
-    setTimeout(() => {
-      const errEl = document.getElementById('login-error');
-      if (!window.firebase || !firebase.initializeApp || !firebase.auth) {
-        const msg = 'Firebase libraries failed to load. Check network/CDN or use local SDK. See console.';
-        console.error(msg);
-        if (errEl) errEl.textContent = msg;
-        // keep login disabled
-        try { const lb = document.getElementById('login-btn'); if (lb) lb.disabled = true; } catch(e){}
-      } else {
-        if (errEl && errEl.textContent === 'Loading...') errEl.textContent = '';
-      }
-    }, 250);
+  // Enable login button safely
+  try {
+    const lb = document.getElementById('login-btn');
+    if (lb) lb.disabled = false;
+  } catch(e){}
+
+  // Verify Firebase libs loaded correctly (optional but fine)
+  setTimeout(() => {
+    const errEl = document.getElementById('login-error');
+    if (!window.firebase || !firebase.initializeApp || !firebase.auth) {
+      const msg = 'Firebase libraries failed to load. Check network/CDN or use local SDK. See console.';
+      console.error(msg);
+      if (errEl) errEl.textContent = msg;
+      try { const lb = document.getElementById('login-btn'); if (lb) lb.disabled = true; } catch(e){}
+    } else {
+      if (errEl && errEl.textContent === 'Loading...') errEl.textContent = '';
+    }
+  }, 250);
 });
 </script>
 
 <script>
-// Ensure we have a ClarityApp instance
+// Ensure we have a ClarityApp instance (in case something loaded out of order)
 if (!(window.app instanceof ClarityApp)) {
   window.app = new ClarityApp();
 }
 
-// If this build doesn't have updateTask, define it now
+// If this build doesn't have updateTask, define it now (permanent fix you wanted)
 if (typeof ClarityApp?.prototype?.updateTask !== 'function') {
   ClarityApp.prototype.updateTask = function (id, changes) {
     this.historyManager.push();
     const task = this.state.tasks.find(t => t.id === id);
     if (!task) { console.warn('Task not found for update:', id); return; }
     Object.assign(task, changes);
-    this.saveState();
+    this.saveState();     // debounced in your newer version, otherwise fine
     this.renderBoard();
     this.showToast('Task updated');
   };
+  console.log('✔ updateTask was missing — FIXED');
 }
 
 // Optional: guard against later overwrites of window.app
@@ -4017,8 +4022,8 @@ console.log('[clarity check]', window.app?.constructor?.name, 'updateTask =', ty
 </script>
 
 </body>
-
 </html>
+
 
 
 
