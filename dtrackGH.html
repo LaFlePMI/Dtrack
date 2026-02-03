@@ -1142,32 +1142,38 @@ login() {
         });
   }
   initRealtimeSync() {
-    db.collection('appData').doc('main').onSnapshot((doc) => {
-      if (doc.exists) {
-        const data = doc.data();
-        
-        this.state.columns = data.columns || ["Alpha", "Beta", "Gamma", "BLANK", "BLANK"];
-        this.state.tasks = this.sanitizeTasks(data.tasks || []);
-        this.state.theme = data.theme || 'void';
-        
-        if (this.defectTracker) {
-          this.defectTracker.redTags = this.defectTracker.sanitizeRedTags(data.redTags || []);
-          this.defectTracker.summaryParts = data.summaryParts || [];
-        }
-        
-        this.setTheme(this.state.theme);
-        if (this.state.mode === 'kanban') {
-          this.renderBoard();
+    // 1. Check if we already have a sync running to avoid duplicates
+    if (this.syncUnsubscribe) return;
+
+    this.syncUnsubscribe = db.collection('appData').doc('main').onSnapshot((doc) => {
+        if (doc.exists) {
+            const data = doc.data();
+            
+            // SYNC CONTENT ONLY
+            this.state.columns = data.columns || ["Alpha", "Beta", "Gamma", "BLANK", "BLANK"];
+            this.state.tasks = this.sanitizeTasks(data.tasks || []);
+            
+            if (this.defectTracker) {
+                this.defectTracker.redTags = this.defectTracker.sanitizeRedTags(data.redTags || []);
+                this.defectTracker.summaryParts = data.summaryParts || [];
+            }
+
+            // DO NOT update this.state.theme or this.state.mode here.
+            // This allows the local user to keep their preferred view.
+
+            // RENDER based on the LOCAL user's current mode
+            if (this.state.mode === 'kanban') {
+                this.renderBoard();
+            } else if (this.defectTracker) {
+                this.defectTracker.render();
+            }
+            
+            this.showToast("Cloud Synced", "success");
         } else {
-          this.defectTracker.render();
+            this.saveState();
         }
-        
-        this.showToast("Cloud Synced", "success");
-      } else {
-        this.saveState();
-      }
     });
-  }
+}
   // --- MIGRATION & SANITIZATION (STABILITY) ---
   
   migrationCheck() {
@@ -1269,8 +1275,6 @@ login() {
     const dataToSave = {
       columns: this.state.columns,
       tasks: this.state.tasks,
-      theme: this.state.theme,
-      mode: this.state.mode,
       // We also include the Defect Tracker data so everything stays in sync
       redTags: this.defectTracker ? this.defectTracker.redTags : [],
       summaryParts: this.defectTracker ? this.defectTracker.summaryParts : []
@@ -4050,6 +4054,7 @@ window.handleUpdateTask = function(id, changes) {
 
 </body>
 </html>
+
 
 
 
