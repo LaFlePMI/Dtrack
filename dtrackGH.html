@@ -1098,6 +1098,7 @@ const auth = firebase.auth();
 
 class ClarityApp {
   constructor() {
+   this.syncUnsubscribe = null;
     // 1. We keep the basic structure, but start with empty arrays
     this.state = {
       columns: [], 
@@ -1141,27 +1142,29 @@ login() {
             console.error("Login failed:", error.message);
         });
   }
-  initRealtimeSync() {
-    // 1. Check if we already have a sync running to avoid duplicates
+ initRealtimeSync() {
+    // 1. Safety check: If we are already listening, don't start a second one
     if (this.syncUnsubscribe) return;
 
+    // 2. Start the "Live Connection" and save the "Hang Up" button to this.syncUnsubscribe
     this.syncUnsubscribe = db.collection('appData').doc('main').onSnapshot((doc) => {
         if (doc.exists) {
             const data = doc.data();
             
-            // SYNC CONTENT ONLY
+            // 3. Update the CONTENT (Tasks and Columns)
             this.state.columns = data.columns || ["Alpha", "Beta", "Gamma", "BLANK", "BLANK"];
             this.state.tasks = this.sanitizeTasks(data.tasks || []);
             
+            // 4. Update Defect Tracker data if it exists
             if (this.defectTracker) {
                 this.defectTracker.redTags = this.defectTracker.sanitizeRedTags(data.redTags || []);
                 this.defectTracker.summaryParts = data.summaryParts || [];
             }
 
-            // DO NOT update this.state.theme or this.state.mode here.
-            // This allows the local user to keep their preferred view.
+            // NOTE: We skip 'theme' and 'mode' here so your screen doesn't 
+            // change just because someone else changed theirs.
 
-            // RENDER based on the LOCAL user's current mode
+            // 5. Refresh the screen based on which mode YOU are currently in
             if (this.state.mode === 'kanban') {
                 this.renderBoard();
             } else if (this.defectTracker) {
@@ -1170,6 +1173,7 @@ login() {
             
             this.showToast("Cloud Synced", "success");
         } else {
+            // If the database is empty, create the first save
             this.saveState();
         }
     });
@@ -4050,10 +4054,31 @@ window.handleUpdateTask = function(id, changes) {
   }
 };
 </script>
+<script> 
+// Initialize the sync for the first time
+app.initRealtimeSync();
 
-
+// The "Background Sinker" - stops data usage when tab is hidden
+document.addEventListener("visibilitychange", () => {
+    if (document.hidden) {
+        // Stop the listener to save data
+        if (app && app.syncUnsubscribe) {
+            app.syncUnsubscribe();
+            app.syncUnsubscribe = null;
+            console.log("Sync paused (Tab Hidden)");
+        }
+    } else {
+        // Restart the listener when the user returns
+        if (app) {
+            app.initRealtimeSync();
+            console.log("Sync resumed (Tab Active)");
+        }
+    }
+});
+</script>
 </body>
 </html>
+
 
 
 
