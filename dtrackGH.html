@@ -561,11 +561,9 @@ body {
           <h3 style="margin:0 0 8px 0; color:var(--text-main); font-size:0.95rem;">Red Tag Controls</h3>
           <div style="display:flex; flex-direction:column; gap:8px;">
             <button id="settings-mode-btn" class="btn" onclick="app.toggleMode(app.state.mode === 'kanban' ? 'defects' : 'kanban')">Toggle Mode</button>
-            <button class="btn" onclick="app.defectTracker.openPasteModal()">Paste Data</button>
-            <button class="btn" onclick="app.defectTracker.openManagePartsModal()">Manage Parts</button>
-            <button class="btn" onclick="app.defectTracker.openManageInspectorsModal()">Manage Inspectors</button>
-            <button class="btn" onclick="app.defectTracker.refreshNcFamilies(); app.showToast('NC families synced.','success')">🔁 Sync NC Families</button>
-            <button class="btn" onclick="app.defectTracker.refreshAllNcDetails(); app.showToast('All NCs refreshed from parts.','success')">⚡ Refresh ALL NCs</button>
+            <button class="btn" onclick="app.defectTracker.openPasteModal()">📝Paste Data📝</button>
+            <button class="btn" onclick="app.defectTracker.openManagePartsModal()">🔩Manage Parts🔩</button>
+            <button class="btn" onclick="app.defectTracker.openManageInspectorsModal()">👀Manage Inspectors👀</button>
           </div>
         </div>
 
@@ -576,7 +574,6 @@ body {
             <button class="btn" onclick="document.getElementById('import-file').click()">⬆️ Import</button>
             <input type="file" id="import-file" style="display:none" accept=".json" onchange="app.ioManager.import(this)">
             <button class="btn" onclick="app.historyManager.undo()">Undo</button>
-            <button class="btn btn-danger" onclick="if(confirm('Delete ALL NCs?')) app.defectTracker.deleteAllNcs()">🧹 Delete ALL NCs</button>
           </div>
         </div>
       </div>
@@ -1865,7 +1862,7 @@ updateTask(id, changes) {
     if (!modal) return;
     const modeBtn = document.getElementById('settings-mode-btn');
     if (modeBtn) {
-      modeBtn.textContent = this.state.mode === 'kanban' ? 'Switch to Red Tag Mode' : 'Switch to Kanban Mode';
+      modeBtn.textContent = this.state.mode === 'kanban' ? '🚨Switch to Red Tag Mode🚨' : 'Switch to Kanban Mode';
     }
     modal.classList.add('visible');
     // Close modal when user clicks outside the content area
@@ -4078,6 +4075,7 @@ document.addEventListener("visibilitychange", () => {
 </script>
 </body>
 </html>
+
 
 
 
