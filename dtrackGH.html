@@ -442,8 +442,8 @@ body {
     <div id="login-overlay" style="position:fixed; top:0; left:0; width:100%; height:100%; background:#000; z-index:9999; display:flex; justify-content:center; align-items:center;">
     <div style="background:#111; padding:40px; border:1px solid #333; text-align:center; border-radius:8px;">
         <h1 style="color:#22d3ee; margin-bottom:20px;">CLARITY // ACCESS</h1>
-        <input type="email" id="login-email" placeholder="Email" style="display:block; margin:10px auto; padding:10px; width:250px;">
-        <input type="password" id="login-pass" placeholder="Password" style="display:block; margin:10px auto; padding:10px; width:250px;">
+        <input type="email" id="login-email" placeholder="Email" style="display:block; margin:10px auto; padding:10px; width:250px; color:#888; background:#222; border:1px solid #444;">
+        <input type="password" id="login-pass" placeholder="Password" style="display:block; margin:10px auto; padding:10px; width:250px; color:#888; background:#222; border:1px solid #444;">
         <button id="login-btn" disabled onclick="if(window.app) { window.app.login() } else { alert('App still loading...') }" class="btn btn-primary" style="width:100%; padding:12px;">AUTHORIZE</button>
         <p id="login-error" style="color:red; margin-top:10px;"></p>
     </div>
@@ -4075,6 +4075,7 @@ document.addEventListener("visibilitychange", () => {
 </script>
 </body>
 </html>
+
 
 
 
