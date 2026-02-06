@@ -2275,7 +2275,7 @@ class DefectTracker {
     const raw = localStorage.getItem('clarity_inspectors');
     if (!raw) {
       // default hard-coded list
-      const defaults = ['EAC','ETB','JAB','JAB/EJL','TLG'];
+      const defaults = ['ARM','ETB','JAB','JAG','TLG','CBT','RAM' ];
       localStorage.setItem('clarity_inspectors', JSON.stringify(defaults));
       return defaults.slice();
     }
@@ -4072,9 +4072,66 @@ document.addEventListener("visibilitychange", () => {
         }
     }
 });
+   (function(){
+const DT = window.DefectTracker && window.DefectTracker.prototype;
+if (!DT) return;
+
+const safeCall = (fn, ctx, args) => {
+try { return fn.apply(ctx, args || []); }
+catch (e) { console.error('DefectTracker shim error:', e); }
+};
+
+// Patch saveRedTags to also push to cloud
+if (DT.saveRedTags) {
+const _orig = DT.saveRedTags;
+DT.saveRedTags = function() {
+safeCall(_orig, this, arguments);
+try { if (this.app && typeof this.app.saveState === 'function') this.app.saveState(); }
+catch(e) { console.error('saveState failed', e); }
+};
+}
+
+// Patch saveSummaryParts to persist to cloud as well
+if (DT.saveSummaryParts) {
+const _orig = DT.saveSummaryParts;
+DT.saveSummaryParts = function() {
+safeCall(_orig, this, arguments);
+try { if (this.app && typeof this.app.saveState === 'function') this.app.saveState(); }
+catch(e) { console.error('saveState failed', e); }
+};
+}
+
+// Patch saveRedTagTrash similarly
+if (DT.saveRedTagTrash) {
+const _orig = DT.saveRedTagTrash;
+DT.saveRedTagTrash = function() {
+safeCall(_orig, this, arguments);
+try { if (this.app && typeof this.app.saveState === 'function') this.app.saveState(); }
+catch(e) { console.error('saveState failed', e); }
+};
+}
+
+// Helper to wrap other methods that mutate NCs but might not call saveRedTags
+const wrapAndSave = (name) => {
+if (!DT[name]) return;
+const _orig = DT[name];
+DT[name] = function(...args) {
+const res = safeCall(_orig, this, args);
+try { if (this.app && typeof this.app.saveState === 'function') this.app.saveState(); }
+catch (e) { console.error('saveState failed', e); }
+return res;
+};
+};
+
+// Wrap key mutating methods (safe no-op if method not present)
+['handleSubmitNewNC','handleEditNC','deleteNc','savePastedData','handleAddPart','handleEditPart','deletePart'].forEach(wrapAndSave);
+
+console.log('DefectTracker cloud-sync shim installed');
+})();
 </script>
 </body>
 </html>
+
 
 
 
