@@ -283,6 +283,7 @@ body {
     animation: jitter 0.5s infinite alternate, pulseGlow 2s infinite ease-in-out;
     box-shadow: inset 0 0 20px rgba(180, 28, 28, 0.6), 0 0 15px rgba(180, 28, 28, 0.5);
     position: relative;
+  color: #ffffff;
 }
 .status-offline::before {
     content: '!';
@@ -300,6 +301,7 @@ body {
     --pulse-color: rgba(6, 182, 212, 0.8); --pulse-color-inset: rgba(6, 182, 212, 0.25);
     animation: pulseGlow 2.5s infinite ease-in-out;
     box-shadow: inset 0 0 20px rgba(6, 182, 212, 0.4), 0 0 15px rgba(6, 182, 212, 0.3);
+  color: #ffffff;
 }
 .status-complete { 
     background: #1a3f2a; border-color: #10b981;
@@ -307,6 +309,7 @@ body {
     animation: pulseGlow 4s infinite ease-in-out, subtleSparkle 4s infinite ease-in-out; 
     box-shadow: inset 0 0 20px rgba(52, 211, 153, 0.35), 0 0 15px rgba(52, 211, 153, 0.25);
     opacity: 1;
+  color: #ffffff;
 }
 .status-none {
     border-left-color: var(--border); opacity: 0.5; animation: none; box-shadow: none;
@@ -434,6 +437,36 @@ body {
 
 .red-tag-description-cell {
   white-space: pre-wrap; word-wrap: break-word; max-width: 300px;
+}
+
+/* Floating quick-actions for Red Tag (New NC / Reports) */
+.floating-rt {
+    position: fixed;
+    right: 18px;
+    bottom: 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    z-index: 1600;
+}
+.floating-rt.hidden { display: none; }
+.floating-btn {
+    width: 56px;
+    height: 56px;
+    border-radius: 999px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.4);
+    padding: 0;
+    cursor: pointer;
+}
+.floating-btn.btn { background: var(--bg-panel); color: var(--text-main); border: 1px solid var(--border); }
+.floating-btn.btn-primary { background: var(--accent); color: var(--bg-main); border-color: var(--accent); }
+@media (max-width: 600px) {
+  .floating-rt { right: 12px; bottom: 12px; }
+  .floating-btn { width: 48px; height: 48px; font-size: 16px; }
 }
 
 </style>
@@ -1100,10 +1133,19 @@ class ClarityApp {
     this.state = {
       columns: [], 
       tasks: [],
-      theme: 'void',
+      theme: 'core',
       filter: '',
       mode: 'kanban' 
     };
+
+    // Load persisted theme from localStorage (per-user setting)
+    try {
+      const savedTheme = localStorage.getItem('clarity_theme');
+      if (savedTheme) {
+        this.state.theme = savedTheme;
+        try { document.documentElement.setAttribute('data-theme', savedTheme); } catch(e) {}
+      }
+    } catch (e) { /* ignore storage errors */ }
 
     // 2. Setup the internal managers
     this.historyManager = new HistoryManager(this);
@@ -1847,6 +1889,7 @@ updateTask(id, changes) {
   setTheme(themeName) {
     document.documentElement.setAttribute('data-theme', themeName);
     this.state.theme = themeName;
+    try { localStorage.setItem('clarity_theme', themeName); } catch(e) {}
     this.saveState();
     if (this.state.mode === 'defects') this.defectTracker.render();
   }
@@ -2275,7 +2318,7 @@ class DefectTracker {
     const raw = localStorage.getItem('clarity_inspectors');
     if (!raw) {
       // default hard-coded list
-      const defaults = ['ARM','ETB','JAB','JAG','TLG','CBT','RAM' ];
+      const defaults = ['EAC','ETB','JAB','JAB/EJL','TLG'];
       localStorage.setItem('clarity_inspectors', JSON.stringify(defaults));
       return defaults.slice();
     }
@@ -3999,6 +4042,12 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 </script>
 
+<!-- Floating quick-actions (always visible) -->
+<div id="floating-rt-actions" class="floating-rt hidden" aria-hidden="true">
+  <button id="floating-new-nc" class="btn btn-primary floating-btn" title="New NC">+ NC</button>
+  <button id="floating-view-reports" class="btn floating-btn" title="View Reports">📊</button>
+</div>
+
 <script>
 // Ensure we have a ClarityApp instance (in case something loaded out of order)
 if (!(window.app instanceof ClarityApp)) {
@@ -4024,6 +4073,45 @@ try { Object.defineProperty(window, 'app', { writable: false, configurable: fals
 
 // Diagnostic: check in Console after reload
 console.log('[clarity check]', window.app?.constructor?.name, 'updateTask =', typeof window.app?.updateTask);
+
+// Wire floating buttons: visibility + click handlers
+(function(){
+  const container = document.getElementById('floating-rt-actions');
+  const btnNew = document.getElementById('floating-new-nc');
+  const btnReports = document.getElementById('floating-view-reports');
+
+  function updateVisibility(){
+    // Show only when defect tracker mode is active
+    try {
+      if (window.app && window.app.state && window.app.state.mode === 'defects') {
+        container.classList.remove('hidden');
+        container.setAttribute('aria-hidden','false');
+      } else {
+        container.classList.add('hidden');
+        container.setAttribute('aria-hidden','true');
+      }
+    } catch(e) { /* safe-fail */ }
+  }
+
+  // Click handlers
+  if (btnNew) btnNew.onclick = () => { try { window.app.defectTracker.prepareAddNC(); } catch(e){console.error(e);} };
+  if (btnReports) btnReports.onclick = () => { try { window.app.defectTracker.openReportsModal(); } catch(e){console.error(e);} };
+
+  // Polling fallback: update visibility periodically and on toggle
+  updateVisibility();
+  const iv = setInterval(updateVisibility, 700);
+  // Also update when app.toggleMode exists (wrap it if present)
+  if (window.app && typeof window.app.toggleMode === 'function') {
+    const orig = window.app.toggleMode.bind(window.app);
+    window.app.toggleMode = function(mode){
+      const res = orig(mode);
+      setTimeout(updateVisibility, 60);
+      return res;
+    };
+  }
+  // Cleanup when page unloads
+  window.addEventListener('beforeunload', ()=> clearInterval(iv));
+})();
 </script>
    
 <script>
@@ -4072,66 +4160,9 @@ document.addEventListener("visibilitychange", () => {
         }
     }
 });
-   (function(){
-const DT = window.DefectTracker && window.DefectTracker.prototype;
-if (!DT) return;
-
-const safeCall = (fn, ctx, args) => {
-try { return fn.apply(ctx, args || []); }
-catch (e) { console.error('DefectTracker shim error:', e); }
-};
-
-// Patch saveRedTags to also push to cloud
-if (DT.saveRedTags) {
-const _orig = DT.saveRedTags;
-DT.saveRedTags = function() {
-safeCall(_orig, this, arguments);
-try { if (this.app && typeof this.app.saveState === 'function') this.app.saveState(); }
-catch(e) { console.error('saveState failed', e); }
-};
-}
-
-// Patch saveSummaryParts to persist to cloud as well
-if (DT.saveSummaryParts) {
-const _orig = DT.saveSummaryParts;
-DT.saveSummaryParts = function() {
-safeCall(_orig, this, arguments);
-try { if (this.app && typeof this.app.saveState === 'function') this.app.saveState(); }
-catch(e) { console.error('saveState failed', e); }
-};
-}
-
-// Patch saveRedTagTrash similarly
-if (DT.saveRedTagTrash) {
-const _orig = DT.saveRedTagTrash;
-DT.saveRedTagTrash = function() {
-safeCall(_orig, this, arguments);
-try { if (this.app && typeof this.app.saveState === 'function') this.app.saveState(); }
-catch(e) { console.error('saveState failed', e); }
-};
-}
-
-// Helper to wrap other methods that mutate NCs but might not call saveRedTags
-const wrapAndSave = (name) => {
-if (!DT[name]) return;
-const _orig = DT[name];
-DT[name] = function(...args) {
-const res = safeCall(_orig, this, args);
-try { if (this.app && typeof this.app.saveState === 'function') this.app.saveState(); }
-catch (e) { console.error('saveState failed', e); }
-return res;
-};
-};
-
-// Wrap key mutating methods (safe no-op if method not present)
-['handleSubmitNewNC','handleEditNC','deleteNc','savePastedData','handleAddPart','handleEditPart','deletePart'].forEach(wrapAndSave);
-
-console.log('DefectTracker cloud-sync shim installed');
-})();
 </script>
 </body>
 </html>
-
 
 
 
