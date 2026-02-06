@@ -1191,6 +1191,8 @@ login() {
               // Mark authenticated and start the live data sync (Step C)
               this.authenticated = true;
               this.initRealtimeSync(); 
+              // Initialize UI (theme, mode, listeners) now that we're authenticated
+              try { this.init(); } catch(e) { console.warn('init() failed after login', e); }
             this.showToast("Access Granted", "success");
         })
         .catch(error => {
@@ -1264,11 +1266,28 @@ login() {
         try {
           const localRaw = localStorage.getItem(this.localSnapshotKey);
           if (localRaw) {
-          const parsed = JSON.parse(localRaw);
-          db.collection('appData').doc('main').set(parsed, { merge: true });
-          console.log('[realtime] Seeded cloud from local snapshot');
+            const parsed = JSON.parse(localRaw);
+            // Apply local snapshot immediately so UI shows data right after login
+            try {
+              if (parsed && Array.isArray(parsed.columns)) this.state.columns = parsed.columns;
+              if (parsed && Array.isArray(parsed.tasks)) this.state.tasks = this.sanitizeTasks(parsed.tasks);
+              if (this.defectTracker) {
+                if (parsed.redTags) this.defectTracker.redTags = this.defectTracker.sanitizeRedTags(parsed.redTags || []);
+                if (parsed.summaryParts) this.defectTracker.summaryParts = parsed.summaryParts || [];
+                if (Array.isArray(parsed.redTagTrash)) this.defectTracker.redTagTrash = parsed.redTagTrash;
+                if (Array.isArray(parsed.inspectors)) this.defectTracker.inspectors = Array.from(new Set(parsed.inspectors.map(s=>String(s).trim()).filter(Boolean)));
+              }
+            } catch(e) { console.warn('[realtime] Failed to apply local snapshot to state', e); }
+
+            // Seed cloud with local snapshot
+            db.collection('appData').doc('main').set(parsed, { merge: true });
+            console.log('[realtime] Seeded cloud from local snapshot');
+
+            // Render immediately so the user sees their board without waiting for onSnapshot
+            if (this.state.mode === 'kanban') this.renderBoard();
+            else if (this.defectTracker) this.defectTracker.render();
           } else {
-          this.saveState();
+            this.saveState();
           }
         } catch (e) { this.saveState(); }
       }
@@ -1489,15 +1508,17 @@ login() {
     // 1b. Always persist a local snapshot so users can work offline
     try { localStorage.setItem(this.localSnapshotKey, JSON.stringify(dataToSave)); } catch (e) { /* best-effort */ }
 
-    // Mark the last local change time for conflict decisions
-    this.lastLocalChange = nowMs;
-
-    // 2. Debounced cloud write (reduces congestion when multiple users edit quickly)
+    // Note: we always persist a local snapshot, but only mark a "local change"
+    // for conflict-resolution when we're actually about to write to the cloud.
     if (this.saveTimeout) clearTimeout(this.saveTimeout);
     this.saveTimeout = setTimeout(() => {
       if (!this.authenticated) { console.log('saveState: deferred cloud write (unauthenticated)'); return; }
+
+      // Mark the last local change time now that a cloud write will be attempted
+      this.lastLocalChange = Date.now();
+
       db.collection('appData').doc('main').set(dataToSave, { merge: true })
-        .then(() => { console.log('Cloud update successful'); this.lastRemoteApplied = nowMs; })
+        .then(() => { console.log('Cloud update successful'); this.lastRemoteApplied = Date.now(); })
         .catch((error) => { console.error('Cloud save error:', error); this.showToast('Save Failed: ' + error.message, 'error'); });
     }, this.saveDebounceMs);
   }
@@ -2243,14 +2264,21 @@ updateTask(id, changes) {
 
       // --- BULLETPROOF DRAG & DROP CONFIGURATION ---
       new Sortable(contentDiv, {
-        group: 'clarity',
+        group: { name: 'clarity', pull: true, put: true },
         animation: 200, // Smoother animation
         delay: 10, // Prevents accidental drags on touch
         ghostClass: 'opacity-50',
         dragClass: 'opacity-100',
         forceFallback: false, // Better mobile performance
+        fallbackOnBody: true,
+        // Prevent starting a drag when interacting with inputs/buttons
+        filter: 'input,textarea,select,button',
+        preventOnFilter: false,
         onStart: () => app.autoScrollManager.pauseForInteraction(),
-        onEnd: (evt) => this.handleDrop(evt)
+        // Use onAdd and onUpdate to handle cross-list moves and reorders reliably
+        onAdd: (evt) => this.handleDrop(evt),
+        onUpdate: (evt) => this.handleDrop(evt),
+        onEnd: (evt) => { /* no-op: handled by onAdd/onUpdate */ }
       });
     });
 
@@ -4320,3 +4348,18 @@ document.addEventListener("visibilitychange", () => {
 </script>
 </body>
 </html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
