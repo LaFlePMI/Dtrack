@@ -1106,6 +1106,7 @@ const auth = firebase.auth();
 
 class ClarityApp {
   constructor() {
+  this._initialized = false;
   this.syncUnsubscribe = null;
    this.authenticated = false;
    // Unique client id for conflict detection
@@ -1206,8 +1207,6 @@ login() {
               // Mark authenticated and start the live data sync (Step C)
               this.authenticated = true;
               this.initRealtimeSync(); 
-              // Initialize UI (theme, mode, listeners) now that we're authenticated
-              try { this.init(); } catch(e) { console.warn('init() failed after login', e); }
             this.showToast("Access Granted", "success");
         })
         .catch(error => {
@@ -1275,6 +1274,9 @@ login() {
           this.defectTracker.render();
         }
 
+        // Initialize UI (theme, listeners) once after first successful sync
+        if (!this._initialized) { try { this.init(); this._initialized = true; } catch(e){console.warn('init() after snapshot failed', e);} }
+
         this.showToast("Cloud Synced", "success");
       } else {
         // If the database is empty, create the first save — prefer local snapshot if available
@@ -1301,6 +1303,9 @@ login() {
             // Render immediately so the user sees their board without waiting for onSnapshot
             if (this.state.mode === 'kanban') this.renderBoard();
             else if (this.defectTracker) this.defectTracker.render();
+
+            // Initialize UI (theme, listeners) once after seeding or applying local snapshot
+            if (!this._initialized) { try { this.init(); this._initialized = true; } catch(e){console.warn('init() after seed failed', e);} }
           } else {
             this.saveState();
           }
