@@ -2366,7 +2366,13 @@ class DefectTracker {
   }
 
   saveRedTags() {
-    localStorage.setItem('clarity_red_tags', JSON.stringify(this.redTags));
+    try {
+      localStorage.setItem('clarity_red_tags', JSON.stringify(this.redTags));
+      // Ensure cloud copy is updated so edits/saves sync for all clients
+      if (this.app && typeof this.app.saveState === 'function') this.app.saveState();
+    } catch (e) {
+      console.error('saveRedTags error', e);
+    }
   }
 
   loadSummaryParts() {
@@ -2383,7 +2389,12 @@ class DefectTracker {
   }
 
   saveSummaryParts() {
-    localStorage.setItem('clarity_summary_parts', JSON.stringify(this.summaryParts));
+    try {
+      localStorage.setItem('clarity_summary_parts', JSON.stringify(this.summaryParts));
+      if (this.app && typeof this.app.saveState === 'function') this.app.saveState();
+    } catch (e) {
+      console.error('saveSummaryParts error', e);
+    }
   }
 
   loadRedTagTrash() {
@@ -2392,7 +2403,12 @@ class DefectTracker {
   }
 
   saveRedTagTrash() {
-    localStorage.setItem('clarity_red_tag_trash', JSON.stringify(this.redTagTrash));
+    try {
+      localStorage.setItem('clarity_red_tag_trash', JSON.stringify(this.redTagTrash));
+      if (this.app && typeof this.app.saveState === 'function') this.app.saveState();
+    } catch (e) {
+      console.error('saveRedTagTrash error', e);
+    }
   }
 
   getStatusClass(status) {
