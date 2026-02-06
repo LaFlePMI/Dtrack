@@ -436,17 +436,6 @@ body {
   white-space: pre-wrap; word-wrap: break-word; max-width: 300px;
 }
 
-/* User status / presence */
-#user-status {
-  position: fixed; right: 16px; bottom: 16px; z-index: 4000;
-  background: var(--bg-panel); border: 1px solid var(--border); color: var(--text-main);
-  padding: 8px 12px; border-radius: 8px; font-weight:700; font-size:0.9rem; box-shadow: 0 6px 20px rgba(0,0,0,0.4);
-}
-#user-status .status-dot { display:inline-block; width:10px; height:10px; border-radius:50%; margin-right:8px; vertical-align:middle; }
-#user-status.idle .status-dot { background:#f59e0b; box-shadow:0 0 8px rgba(245,158,11,0.4); }
-#user-status.active .status-dot { background:#10b981; box-shadow:0 0 8px rgba(16,185,129,0.25); }
-#user-status.unknown .status-dot { background:#94a3b8; }
-
 </style>
 </head>
 <body>
@@ -455,7 +444,7 @@ body {
         <h1 style="color:#22d3ee; margin-bottom:20px;">CLARITY // ACCESS</h1>
         <input type="email" id="login-email" placeholder="Email" style="display:block; margin:10px auto; padding:10px; width:250px; color:#888; background:#222; border:1px solid #444;">
         <input type="password" id="login-pass" placeholder="Password" style="display:block; margin:10px auto; padding:10px; width:250px; color:#888; background:#222; border:1px solid #444;">
-        <button id="login-btn" onclick="if(window.app) { window.app.login() } else { alert('App still loading...') }" class="btn btn-primary" style="width:100%; padding:12px;">AUTHORIZE</button>
+        <button id="login-btn" disabled onclick="if(window.app) { window.app.login() } else { alert('App still loading...') }" class="btn btn-primary" style="width:100%; padding:12px;">AUTHORIZE</button>
         <p id="login-error" style="color:red; margin-top:10px;"></p>
     </div>
 </div>
@@ -485,7 +474,6 @@ body {
 
     <div class="control-group">
       <button id="hud-settings-btn" class="btn" onclick="app.openHudSettingsModal()">⚙️ Settings</button>
-      <button id="logout-btn" class="btn" onclick="app.logout()" title="Sign out">🔒 Logout</button>
     </div>
     <div id="hud-toggle" onclick="window.app?.toggleHud()" style="cursor:pointer; margin-top:8px; text-align:center; color:var(--text-muted); font-size:0.85rem;">HIDE CONTROLS</div>
   </div>
@@ -549,7 +537,6 @@ body {
   </footer>
 </div>
 <div id="toast"></div>
-<div id="user-status" class="unknown"><span class="status-dot"></span><span id="user-status-text">Not signed in</span></div>
 
   <!-- HUD SETTINGS MODAL -->
   <div id="hud-settings-modal" class="modal">
@@ -1101,29 +1088,21 @@ const db = firebase.firestore();
 const auth = firebase.auth();
 
 /**
- * CLARITY //
+ * CLARITY // CORE ENGINE 1.0
+ * Built on the foundation of Project Nexus 4.3.1
+ * Focus: Stability, Modernization, "Bulletproof" Logic
  */
 
 class ClarityApp {
   constructor() {
-  this._initialized = false;
-  this.syncUnsubscribe = null;
-   this.authenticated = false;
-   // Unique client id for conflict detection
-   this.clientId = (typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID() : ('c-' + Math.random().toString(36).slice(2));
-   // Track timestamps to avoid clobbering newer local changes with older remote snapshots
-   this.lastLocalChange = null; // ms since epoch
-   this.lastRemoteApplied = null; // ms since epoch
-   this.saveTimeout = null;
-   this.saveDebounceMs = 800; // debounce cloud writes to reduce congestion
-   this.localSnapshotKey = 'clarity_local_snapshot';
+   this.syncUnsubscribe = null;
     // 1. We keep the basic structure, but start with empty arrays
     this.state = {
       columns: [], 
       tasks: [],
       theme: 'void',
       filter: '',
-      mode: 'kanban'
+      mode: 'kanban' 
     };
 
     // 2. Setup the internal managers
@@ -1137,62 +1116,6 @@ class ClarityApp {
     
     // 4. Set up the event listeners so buttons like "Add Task" work later
     if (this.initEventListeners) this.initEventListeners();
-    // Load any locally-saved snapshot so users can work offline before login
-    try {
-      const raw = localStorage.getItem(this.localSnapshotKey);
-      if (raw) {
-        const obj = JSON.parse(raw);
-        if (obj && Array.isArray(obj.columns)) this.state.columns = obj.columns;
-        if (obj && Array.isArray(obj.tasks)) this.state.tasks = this.sanitizeTasks(obj.tasks);
-        if (this.defectTracker) {
-          if (obj.redTags) this.defectTracker.redTags = this.defectTracker.sanitizeRedTags(obj.redTags || []);
-          if (obj.summaryParts) this.defectTracker.summaryParts = obj.summaryParts || [];
-          if (obj.redTagTrash) this.defectTracker.redTagTrash = obj.redTagTrash || [];
-        }
-        console.log('[localSnapshot] Loaded local snapshot');
-      }
-    } catch (e) { console.warn('Failed to load local snapshot', e); }
-    // Load UI preferences (local only)
-    try {
-      const prefsRaw = localStorage.getItem('clarity_ui_prefs');
-      if (prefsRaw) {
-        const prefs = JSON.parse(prefsRaw);
-        if (prefs && prefs.theme) this.state.theme = prefs.theme;
-        if (prefs && prefs.mode) this.state.mode = prefs.mode;
-      }
-    } catch (e) { console.warn('Failed to load local UI prefs', e); }
-    // Auth state listener: keep UI and sync lifecycle in sync with Firebase auth
-    try {
-      auth.onAuthStateChanged((user) => {
-        if (user) {
-          this.authenticated = true;
-          this._setUserDisplay(user);
-          // start realtime sync when authenticated
-          if (!this.syncUnsubscribe) this.initRealtimeSync();
-        } else {
-          this.authenticated = false;
-          this._setUserDisplay(null);
-          // show login overlay
-          const overlay = document.getElementById('login-overlay');
-          if (overlay) overlay.style.display = 'flex';
-          if (this.syncUnsubscribe) { try { this.syncUnsubscribe(); } catch(e){}; this.syncUnsubscribe = null; }
-        }
-      });
-    } catch (e) { console.warn('Auth listener setup failed', e); }
-
-    // Idle detection
-    this.idleTimeoutMs = 5 * 60 * 1000; // 5 minutes
-    this.idleTimer = null;
-    this.idle = false;
-    const activityHandler = () => { try { this._resetIdleTimer(); } catch(e){} };
-    ['mousemove','keydown','scroll','touchstart'].forEach(ev => window.addEventListener(ev, activityHandler, {passive:true}));
-    // Keep app idle state in sync with tab visibility
-    document.addEventListener('visibilitychange', () => {
-      try {
-        if (document.hidden) this._markIdle(); else this._resetIdleTimer();
-      } catch(e) { /* safe-fail */ }
-    });
-    this._resetIdleTimer();
   }
 login() {
     const email = document.getElementById('login-email').value;
@@ -1204,9 +1127,9 @@ login() {
             // SUCCESS: Hide the login overlay
             const overlay = document.getElementById('login-overlay');
             if (overlay) overlay.style.display = 'none';
-              // Mark authenticated and start the live data sync (Step C)
-              this.authenticated = true;
-              this.initRealtimeSync(); 
+            
+            // Now start the live data sync (Step C)
+            this.initRealtimeSync(); 
             this.showToast("Access Granted", "success");
         })
         .catch(error => {
@@ -1222,155 +1145,36 @@ login() {
 
     // 2. Start the "Live Connection" and save the "Hang Up" button to this.syncUnsubscribe
     this.syncUnsubscribe = db.collection('appData').doc('main').onSnapshot((doc) => {
-      if (doc.exists) {
-        const data = doc.data();
-        const serverMeta = (data && data._meta) ? data._meta : {};
-        const serverUpdatedAtMs = serverMeta && serverMeta.updatedAt ? Date.parse(serverMeta.updatedAt) : null;
-
-        // If we have recent local edits that occurred after the server's timestamp, ignore this snapshot
-        if (this.lastLocalChange && serverUpdatedAtMs && serverUpdatedAtMs <= this.lastLocalChange) {
-          console.log('[realtime] Ignoring remote snapshot (local changes are newer)');
-          return;
-        }
-
-            // 3. Merge the CONTENT (Tasks and Columns) using per-entity updatedAt
+        if (doc.exists) {
+            const data = doc.data();
+            
+            // 3. Update the CONTENT (Tasks and Columns)
             this.state.columns = data.columns || ["Alpha", "Beta", "Gamma", "BLANK", "BLANK"];
-            // Merge tasks by id using updatedAt
-            try {
-              const serverTasks = Array.isArray(data.tasks) ? data.tasks : [];
-              const mergedTasks = this._mergeArraysByUpdatedAt(this.state.tasks || [], serverTasks, 'id');
-              this.state.tasks = this.sanitizeTasks(mergedTasks || []);
-            } catch (e) {
-              console.warn('[realtime] Task merge failed, falling back to server tasks', e);
-              this.state.tasks = this.sanitizeTasks(data.tasks || []);
+            this.state.tasks = this.sanitizeTasks(data.tasks || []);
+            
+            // 4. Update Defect Tracker data if it exists
+            if (this.defectTracker) {
+                this.defectTracker.redTags = this.defectTracker.sanitizeRedTags(data.redTags || []);
+                this.defectTracker.summaryParts = data.summaryParts || [];
             }
 
-        // 4. Update Defect Tracker data if it exists
-        if (this.defectTracker) {
-                // Merge redTags by nc (per-entity)
-                try {
-                  const serverRedTags = Array.isArray(data.redTags) ? data.redTags : [];
-                  const mergedRedTags = this._mergeArraysByUpdatedAt(this.defectTracker.redTags || [], serverRedTags, 'nc');
-                  this.defectTracker.redTags = this.defectTracker.sanitizeRedTags(mergedRedTags || []);
-                } catch (e) {
-                  console.warn('[realtime] redTags merge failed, falling back to server redTags', e);
-                  this.defectTracker.redTags = this.defectTracker.sanitizeRedTags(data.redTags || []);
-                }
-                this.defectTracker.summaryParts = data.summaryParts || [];
-                if (Array.isArray(data.redTagTrash)) this.defectTracker.redTagTrash = data.redTagTrash;
-                if (Array.isArray(data.inspectors)) this.defectTracker.inspectors = Array.from(new Set(data.inspectors.map(s=>String(s).trim()).filter(Boolean)));
-        }
+            // NOTE: We skip 'theme' and 'mode' here so your screen doesn't 
+            // change just because someone else changed theirs.
 
-        // Update lastRemoteApplied timestamp so we can compare future snapshots
-        if (serverUpdatedAtMs) this.lastRemoteApplied = serverUpdatedAtMs;
-
-        // NOTE: We skip 'theme' and 'mode' here so your screen doesn't 
-        // change just because someone else changed theirs.
-
-        // 5. Refresh the screen based on which mode YOU are currently in
-        if (this.state.mode === 'kanban') {
-          this.renderBoard();
-        } else if (this.defectTracker) {
-          this.defectTracker.render();
-        }
-
-        // Initialize UI (theme, listeners) once after first successful sync
-        if (!this._initialized) { try { this.init(); this._initialized = true; } catch(e){console.warn('init() after snapshot failed', e);} }
-
-        this.showToast("Cloud Synced", "success");
-      } else {
-        // If the database is empty, create the first save — prefer local snapshot if available
-        try {
-          const localRaw = localStorage.getItem(this.localSnapshotKey);
-          if (localRaw) {
-            const parsed = JSON.parse(localRaw);
-            // Apply local snapshot immediately so UI shows data right after login
-            try {
-              if (parsed && Array.isArray(parsed.columns)) this.state.columns = parsed.columns;
-              if (parsed && Array.isArray(parsed.tasks)) this.state.tasks = this.sanitizeTasks(parsed.tasks);
-              if (this.defectTracker) {
-                if (parsed.redTags) this.defectTracker.redTags = this.defectTracker.sanitizeRedTags(parsed.redTags || []);
-                if (parsed.summaryParts) this.defectTracker.summaryParts = parsed.summaryParts || [];
-                if (Array.isArray(parsed.redTagTrash)) this.defectTracker.redTagTrash = parsed.redTagTrash;
-                if (Array.isArray(parsed.inspectors)) this.defectTracker.inspectors = Array.from(new Set(parsed.inspectors.map(s=>String(s).trim()).filter(Boolean)));
-              }
-            } catch(e) { console.warn('[realtime] Failed to apply local snapshot to state', e); }
-
-            // Seed cloud with local snapshot
-            db.collection('appData').doc('main').set(parsed, { merge: true });
-            console.log('[realtime] Seeded cloud from local snapshot');
-
-            // Render immediately so the user sees their board without waiting for onSnapshot
-            if (this.state.mode === 'kanban') this.renderBoard();
-            else if (this.defectTracker) this.defectTracker.render();
-
-            // Initialize UI (theme, listeners) once after seeding or applying local snapshot
-            if (!this._initialized) { try { this.init(); this._initialized = true; } catch(e){console.warn('init() after seed failed', e);} }
-          } else {
+            // 5. Refresh the screen based on which mode YOU are currently in
+            if (this.state.mode === 'kanban') {
+                this.renderBoard();
+            } else if (this.defectTracker) {
+                this.defectTracker.render();
+            }
+            
+            this.showToast("Cloud Synced", "success");
+        } else {
+            // If the database is empty, create the first save
             this.saveState();
-          }
-        } catch (e) { this.saveState(); }
-      }
+        }
     });
 }
-  
-  // --- USER PRESENCE & IDLE HANDLERS ---
-  _setUserDisplay(user) {
-    const el = document.getElementById('user-status');
-    const txt = document.getElementById('user-status-text');
-    if (!el || !txt) return;
-    if (!user) {
-      el.className = 'unknown';
-      txt.textContent = 'Not signed in';
-      return;
-    }
-    const name = user.email || user.displayName || user.uid || 'User';
-    el.className = this.idle ? 'idle' : 'active';
-    txt.textContent = `${name} • ${this.idle ? 'Idle' : 'Active'}`;
-  }
-
-  _resetIdleTimer() {
-    if (this.idle) this._markActive();
-    if (this.idleTimer) clearTimeout(this.idleTimer);
-    this.idleTimer = setTimeout(() => this._markIdle(), this.idleTimeoutMs);
-  }
-
-  _markIdle() {
-    this.idle = true;
-    const el = document.getElementById('user-status');
-    const txt = document.getElementById('user-status-text');
-    if (el) el.className = 'idle';
-    if (txt) txt.textContent = (auth.currentUser && (auth.currentUser.email || auth.currentUser.uid)) ? `${auth.currentUser.email || auth.currentUser.uid} • Idle` : 'Idle';
-    this.showToast('You are now idle', 'warning');
-  }
-
-  _markActive() {
-    this.idle = false;
-    const el = document.getElementById('user-status');
-    const txt = document.getElementById('user-status-text');
-    if (el) el.className = 'active';
-    if (txt) txt.textContent = (auth.currentUser && (auth.currentUser.email || auth.currentUser.uid)) ? `${auth.currentUser.email || auth.currentUser.uid} • Active` : 'Active';
-    this.showToast('Welcome back', 'success');
-    // reset local last activity timestamp so remote snapshots aren't ignored incorrectly
-    this.lastLocalChange = Date.now();
-  }
-
-  // Logout: explicit sign out and cleanup
-  logout() {
-    try {
-      auth.signOut().then(() => {
-        this.authenticated = false;
-        if (this.syncUnsubscribe) { try { this.syncUnsubscribe(); } catch(e){}; this.syncUnsubscribe = null; }
-        const overlay = document.getElementById('login-overlay');
-        if (overlay) overlay.style.display = 'flex';
-        this._setUserDisplay(null);
-        this.showToast('Signed out', 'success');
-      }).catch(err => {
-        console.error('Sign out failed', err);
-        this.showToast('Sign out failed', 'error');
-      });
-    } catch (e) { console.error('logout error', e); this.showToast('Sign out failed', 'error'); }
-  }
   // --- MIGRATION & SANITIZATION (STABILITY) ---
   
   migrationCheck() {
@@ -1399,10 +1203,7 @@ login() {
         sortOrder: t.sortOrder !== undefined ? t.sortOrder : Date.now(),
         deleted: t.deleted === true,
         archived: t.archived === true, 
-        archiveTimestamp: t.archiveTimestamp || null,
-        // merge metadata for concurrency
-        updatedAt: t.updatedAt || new Date().toISOString(),
-        updatedBy: t.updatedBy || t.clientId || this.clientId
+        archiveTimestamp: t.archiveTimestamp || null 
     }));
   }
 
@@ -1411,44 +1212,6 @@ login() {
     this.toggleMode(this.state.mode);
     this.setupGlobalListeners();
     this.showToast("CLARITY 1.0 ONLINE");
-  }
-
-  // Merge two arrays of objects by idKey using updatedAt (ISO) to choose the freshest entry.
-  _mergeArraysByUpdatedAt(localArr, serverArr, idKey) {
-    const out = new Map();
-    const add = (item) => {
-      const key = (item && item[idKey]) ? item[idKey] : null;
-      if (!key) return;
-      out.set(key, item);
-    };
-
-    // index local
-    const localMap = new Map();
-    (localArr || []).forEach(i => { if (i && i[idKey]) localMap.set(i[idKey], i); });
-    const serverMap = new Map();
-    (serverArr || []).forEach(i => { if (i && i[idKey]) serverMap.set(i[idKey], i); });
-
-    const keys = new Set([...localMap.keys(), ...serverMap.keys()]);
-    keys.forEach(k => {
-      const l = localMap.get(k);
-      const s = serverMap.get(k);
-      if (!l) { out.set(k, s); return; }
-      if (!s) { out.set(k, l); return; }
-      try {
-        const lTime = l.updatedAt ? Date.parse(l.updatedAt) : 0;
-        const sTime = s.updatedAt ? Date.parse(s.updatedAt) : 0;
-        if (isNaN(lTime) || isNaN(sTime)) {
-          // fallback: prefer server
-          out.set(k, s);
-        } else if (lTime >= sTime) {
-          out.set(k, l);
-        } else {
-          out.set(k, s);
-        }
-      } catch (e) { out.set(k, s); }
-    });
-
-    return Array.from(out.values());
   }
 
   toggleMode(mode) {
@@ -1478,7 +1241,6 @@ login() {
     }
     // Auto-close settings modal if open when mode changes
     document.getElementById('hud-settings-modal')?.classList.remove('visible');
-    try { localStorage.setItem('clarity_ui_prefs', JSON.stringify({ theme: this.state.theme, mode: this.state.mode })); } catch(e) {}
     this.saveState();
   }
 
@@ -1509,49 +1271,26 @@ login() {
 
   // --- STATE MANAGEMENT ---
   
-  saveState(forceCloud = false) {
+  saveState() {
     // 1. Package all current app data into one object
-    const nowIso = new Date().toISOString();
-    const nowMs = Date.now();
     const dataToSave = {
       columns: this.state.columns,
       tasks: this.state.tasks,
-      // Include Defect Tracker data so everything stays in sync
+      // We also include the Defect Tracker data so everything stays in sync
       redTags: this.defectTracker ? this.defectTracker.redTags : [],
-      summaryParts: this.defectTracker ? this.defectTracker.summaryParts : [],
-      // Persist inspector list and red-tag trash so multi-client sync works
-      redTagTrash: this.defectTracker ? (this.defectTracker.redTagTrash || []) : [],
-      inspectors: this.defectTracker ? (this.defectTracker.inspectors || []) : [],
-      // Meta information for conflict resolution
-      _meta: { updatedAt: nowIso, clientId: this.clientId }
+      summaryParts: this.defectTracker ? this.defectTracker.summaryParts : []
     };
 
-    // 1b. Always persist a local snapshot so users can work offline
-    try { localStorage.setItem(this.localSnapshotKey, JSON.stringify(dataToSave)); } catch (e) { /* best-effort */ }
-
-    // Note: always persist local snapshot first
-    if (forceCloud && this.authenticated) {
-      // Immediate cloud write requested and we're authenticated: write now
-      if (this.saveTimeout) { clearTimeout(this.saveTimeout); this.saveTimeout = null; }
-      this.lastLocalChange = Date.now();
-      db.collection('appData').doc('main').set(dataToSave, { merge: true })
-        .then(() => { console.log('Cloud update (immediate) successful'); this.lastRemoteApplied = Date.now(); })
-        .catch((error) => { console.error('Cloud save error:', error); this.showToast('Save Failed: ' + error.message, 'error'); });
-      return; // done
-    }
-
-    // Debounced cloud write (reduces congestion when multiple users edit quickly)
-    if (this.saveTimeout) clearTimeout(this.saveTimeout);
-    this.saveTimeout = setTimeout(() => {
-      if (!this.authenticated) { console.log('saveState: deferred cloud write (unauthenticated)'); return; }
-
-      // Mark the last local change time now that a cloud write will be attempted
-      this.lastLocalChange = Date.now();
-
-      db.collection('appData').doc('main').set(dataToSave, { merge: true })
-        .then(() => { console.log('Cloud update successful'); this.lastRemoteApplied = Date.now(); })
-        .catch((error) => { console.error('Cloud save error:', error); this.showToast('Save Failed: ' + error.message, 'error'); });
-    }, this.saveDebounceMs);
+    // 2. Upload to Firestore
+    // .set with {merge: true} is the safest way to update the document
+    db.collection('appData').doc('main').set(dataToSave, { merge: true })
+      .then(() => {
+        console.log("Cloud update successful");
+      })
+      .catch((error) => {
+        console.error("Cloud save error:", error);
+        this.showToast("Save Failed: " + error.message, "error");
+      });
   }
 updateTask(id, changes) {
     this.historyManager.push();
@@ -1564,9 +1303,6 @@ updateTask(id, changes) {
 
     // Apply the changes
     Object.assign(task, changes);
-    // mark entity-level metadata for merge
-    task.updatedAt = new Date().toISOString();
-    task.updatedBy = this.clientId;
 
     // Save and re-render
     this.saveState();
@@ -1599,9 +1335,7 @@ updateTask(id, changes) {
       sortOrder: Date.now(),
       deleted: false,
       archived: false,
-      archiveTimestamp: null,
-      updatedAt: new Date().toISOString(),
-      updatedBy: this.clientId
+      archiveTimestamp: null 
     };
 
     this.state.tasks.push(newTask);
@@ -2113,7 +1847,6 @@ updateTask(id, changes) {
   setTheme(themeName) {
     document.documentElement.setAttribute('data-theme', themeName);
     this.state.theme = themeName;
-    try { localStorage.setItem('clarity_ui_prefs', JSON.stringify({ theme: this.state.theme, mode: this.state.mode })); } catch(e) {}
     this.saveState();
     if (this.state.mode === 'defects') this.defectTracker.render();
   }
@@ -2296,18 +2029,13 @@ updateTask(id, changes) {
 
       // --- BULLETPROOF DRAG & DROP CONFIGURATION ---
       new Sortable(contentDiv, {
-        group: { name: 'clarity', pull: true, put: true },
+        group: 'clarity',
         animation: 200, // Smoother animation
         delay: 10, // Prevents accidental drags on touch
         ghostClass: 'opacity-50',
         dragClass: 'opacity-100',
         forceFallback: false, // Better mobile performance
-        fallbackOnBody: true,
-        // Prevent starting a drag when interacting with inputs/buttons
-        filter: 'input,textarea,select,button',
-        preventOnFilter: false,
         onStart: () => app.autoScrollManager.pauseForInteraction(),
-        // Use onEnd only — handleAdd + handleUpdate together can cause duplicate runs
         onEnd: (evt) => this.handleDrop(evt)
       });
     });
@@ -2333,55 +2061,53 @@ updateTask(id, changes) {
 
   // --- THE "BULLETPROOF" LOGIC FIX ---
   handleDrop(evt) {
-    // Guard to avoid handling duplicate Sortable events
-    if (this._processingDrop) return;
-    this._processingDrop = true;
+    const taskId = evt.item.dataset.id;
+    const toCol = evt.to.closest('.column');
+    
+    // Safety: If dropped outside a valid column, cancel.
+    if (!toCol) return;
 
-    const taskId = evt.item && evt.item.dataset ? evt.item.dataset.id : null;
-    const toCol = evt.to ? evt.to.closest('.column') : null;
-    if (!taskId || !toCol) { this._processingDrop = false; return; }
-
-    // Apply move
     this.historyManager.push();
     const newPerson = toCol.dataset.person;
     const task = this.state.tasks.find(t => t.id === taskId);
-    if (!task) { this._processingDrop = false; return; }
-
+    
     if (task.person !== newPerson) {
-      task.person = newPerson;
-      this.showToast(`Moved to ${newPerson}`);
+        task.person = newPerson;
+        this.showToast(`Moved to ${newPerson}`);
     }
 
-    // SMART DATE SNAPPING: set to most common date in the target column
+    // --- SMART DATE SNAPPING LOGIC ---
+    // Always update to the most common date in the target column
+    
     const siblings = Array.from(evt.to.querySelectorAll('.task-card'));
-    let targetDate = task.date;
+    let targetDate = task.date; // Default to self
+
     if (siblings.length > 0) {
-      const columnTasks = siblings.map(s => this.state.tasks.find(t => t.id === s.dataset.id)).filter(t => t && t.id !== task.id);
+      const columnTasks = siblings.map(s => this.state.tasks.find(t => t.id === s.dataset.id)).filter(t => t.id !== task.id);
       if (columnTasks.length > 0) {
         const dateCount = {};
         columnTasks.forEach(t => dateCount[t.date] = (dateCount[t.date] || 0) + 1);
         const mostCommon = Object.keys(dateCount).reduce((a, b) => dateCount[a] > dateCount[b] ? a : b);
-        if (mostCommon) targetDate = mostCommon;
+        targetDate = mostCommon;
       }
     }
 
     if (task.date !== targetDate) {
-      task.date = targetDate;
-      this.showToast(`Rescheduled to ${targetDate}`);
+        task.date = targetDate;
+        this.showToast(`Rescheduled to ${targetDate}`);
     }
 
-    // Update sort order by DOM order
+    // Update Sort Order
     const newIds = siblings.map(el => el.dataset.id);
     this.state.tasks.forEach(t => {
-      if (t.person === newPerson) {
-        const idx = newIds.indexOf(t.id);
-        if (idx !== -1) t.sortOrder = idx;
-      }
+        if (t.person === newPerson) {
+            const idx = newIds.indexOf(t.id);
+            if (idx !== -1) t.sortOrder = idx;
+        }
     });
 
-    // Persist immediately and defer heavy re-render slightly so Sortable completes DOM changes
-    try { this.saveState(true); } catch(e) { this.saveState(); }
-    setTimeout(() => { try { this.renderBoard(); } catch(e){} this._processingDrop = false; }, 80);
+    this.saveState();
+    this.renderBoard();
   }
 
   setupGlobalListeners() {
@@ -2568,7 +2294,6 @@ class DefectTracker {
     list.sort((a,b)=>a.localeCompare(b));
     this.inspectors = list;
     localStorage.setItem('clarity_inspectors', JSON.stringify(list));
-    try { if (this.app && typeof this.app.saveState === 'function') this.app.saveState(); } catch(e) { console.error('Failed to push inspectors to cloud', e); }
   }
 
   sanitizeRedTags(tags) {
@@ -2585,10 +2310,7 @@ class DefectTracker {
       inspector: t.inspector || '',
       description: t.description || '',
       disposition: t.disposition || '',
-      notes: t.notes || '',
-      // per-entity metadata for concurrency
-      updatedAt: t.updatedAt || new Date().toISOString(),
-      updatedBy: t.updatedBy || t.clientId || (this.app && this.app.clientId) || 'unknown'
+      notes: t.notes || ''
     }));
   }
 
@@ -2599,7 +2321,6 @@ class DefectTracker {
 
   saveRedTags() {
     localStorage.setItem('clarity_red_tags', JSON.stringify(this.redTags));
-    try { if (this.app && typeof this.app.saveState === 'function') this.app.saveState(); } catch(e) { console.error('Failed to push redTags to cloud', e); }
   }
 
   loadSummaryParts() {
@@ -2617,7 +2338,6 @@ class DefectTracker {
 
   saveSummaryParts() {
     localStorage.setItem('clarity_summary_parts', JSON.stringify(this.summaryParts));
-    try { if (this.app && typeof this.app.saveState === 'function') this.app.saveState(); } catch(e) { console.error('Failed to push summaryParts to cloud', e); }
   }
 
   loadRedTagTrash() {
@@ -2627,7 +2347,6 @@ class DefectTracker {
 
   saveRedTagTrash() {
     localStorage.setItem('clarity_red_tag_trash', JSON.stringify(this.redTagTrash));
-    try { if (this.app && typeof this.app.saveState === 'function') this.app.saveState(); } catch(e) { console.error('Failed to push redTagTrash to cloud', e); }
   }
 
   getStatusClass(status) {
@@ -2661,22 +2380,22 @@ class DefectTracker {
     const isInvalid = !item.nc || !item.status;
     const validationClass = isInvalid ? 'red-tag-data-warning' : '';
 
-    const statusCell = `<span style="padding:2px 8px; font-size:0.75rem; font-weight:600; border-radius:4px; ${statusClass ? 'background:var(--bg-panel); color:var(--accent);' : ''}">${this.app.escapeHtml(item.status || 'N/A')}</span>`;
+    const statusCell = `<span style="padding:2px 8px; font-size:0.75rem; font-weight:600; border-radius:4px; ${statusClass ? 'background:var(--bg-panel); color:var(--accent);' : ''}">${item.status || 'N/A'}</span>`;
 
     return `
         <tr class="defect-row ${rowClass} ${validationClass}">
-            <td style="padding:15px; border-right:1px solid var(--border);">${this.app.escapeHtml(item.nc || '')}</td>
+            <td style="padding:15px; border-right:1px solid var(--border);">${item.nc}</td>
             <td style="padding:15px; text-align:center; border-right:1px solid var(--border);">${statusCell}</td>
-            <td style="padding:15px; border-right:1px solid var(--border);">${this.app.escapeHtml(item.partNumber || '')}</td>
-            <td style="padding:15px; border-right:1px solid var(--border);">${this.app.escapeHtml(item.serial || '')}</td>
-            <td style="padding:15px; border-right:1px solid var(--border);">${this.app.escapeHtml(item.partName || '')}</td>
-        <td style="padding:15px; border-right:1px solid var(--border);">${this.app.escapeHtml(item.family || '')}</td>
-            <td style="padding:15px; border-right:1px solid var(--border);">${this.app.escapeHtml(item.dateLogged || '')}</td>
-            <td style="padding:15px; text-align:center; border-right:1px solid var(--border);">${this.app.escapeHtml(String(item.qty || ''))}</td>
-            <td style="padding:15px; border-right:1px solid var(--border);">${this.app.escapeHtml(item.inspector || '')}</td>
-            <td style="padding:15px; white-space: pre-wrap; word-wrap: break-word; max-width:300px; border-right:1px solid var(--border);">${this.app.escapeHtml(item.description || '')}</td>
-            <td style="padding:15px; white-space: pre-wrap; word-wrap: break-word; max-width:300px; border-right:1px solid var(--border);">${this.app.escapeHtml(item.disposition || '')}</td>
-            <td style="padding:15px; white-space: pre-wrap; word-wrap: break-word; max-width:300px; border-right:1px solid var(--border);">${this.app.escapeHtml(item.notes || '')}</td>
+            <td style="padding:15px; border-right:1px solid var(--border);">${item.partNumber || ''}</td>
+            <td style="padding:15px; border-right:1px solid var(--border);">${item.serial || ''}</td>
+            <td style="padding:15px; border-right:1px solid var(--border);">${item.partName || ''}</td>
+        <td style="padding:15px; border-right:1px solid var(--border);">${item.family || ''}</td>
+            <td style="padding:15px; border-right:1px solid var(--border);">${item.dateLogged || ''}</td>
+            <td style="padding:15px; text-align:center; border-right:1px solid var(--border);">${item.qty || ''}</td>
+            <td style="padding:15px; border-right:1px solid var(--border);">${item.inspector || ''}</td>
+            <td style="padding:15px; white-space: pre-wrap; word-wrap: break-word; max-width:300px; border-right:1px solid var(--border);">${item.description || ''}</td>
+            <td style="padding:15px; white-space: pre-wrap; word-wrap: break-word; max-width:300px; border-right:1px solid var(--border);">${item.disposition || ''}</td>
+            <td style="padding:15px; white-space: pre-wrap; word-wrap: break-word; max-width:300px; border-right:1px solid var(--border);">${item.notes || ''}</td>
             <td style="padding:15px; text-align:center;">
                 <button class="btn" style="margin:0 5px;" onclick="app.defectTracker.openEditModal('${item.nc}')">Edit</button>
                 <button class="btn btn-danger" style="margin:0 5px;" onclick="app.defectTracker.deleteNc('${item.nc}')">DEL</button>
@@ -2768,10 +2487,7 @@ class DefectTracker {
     }
 
     try {
-      // annotate metadata
-      data.updatedAt = new Date().toISOString();
-      data.updatedBy = (this.app && this.app.clientId) || this.app.clientId || 'unknown';
-      this.redTags.push(data);
+        this.redTags.push(data);
         this.saveRedTags();
         this.app.showToast(`NC ${data.nc} saved successfully.`, 'success');
         this.render();
@@ -2819,8 +2535,6 @@ class DefectTracker {
             this.app.showToast(`NC ${data.nc} already exists.`, 'error');
             return;
         }
-        data.updatedAt = new Date().toISOString();
-        data.updatedBy = (this.app && this.app.clientId) || this.app.clientId || 'unknown';
         this.redTags[index] = data;
         this.saveRedTags();
         this.app.showToast(`NC ${data.nc} updated successfully.`, 'success');
@@ -3200,14 +2914,10 @@ class DefectTracker {
             
             console.log(`[savePastedData] Updating NC ${cleanItem.nc}: existing family="${existingFamily}" incoming="${incomingFamily}" final="${finalFamily}"`);
             
-            cleanItem.updatedAt = new Date().toISOString();
-            cleanItem.updatedBy = (this.app && this.app.clientId) || this.app.clientId || 'unknown';
             this.redTags[index] = { ...this.redTags[index], ...cleanItem, family: finalFamily };
             updatedCount++;
         } else {
             console.log(`[savePastedData] Adding new NC ${cleanItem.nc}: family="${cleanItem.family}"`);
-            cleanItem.updatedAt = new Date().toISOString();
-            cleanItem.updatedBy = (this.app && this.app.clientId) || this.app.clientId || 'unknown';
             this.redTags.push(cleanItem);
             addedCount++;
         }
@@ -3780,15 +3490,15 @@ class DefectTracker {
     data.forEach((item, index) => {
         const rowClass = index % 2 === 0 ? 'bg-[var(--bg-card)]' : 'bg-[var(--bg-panel)]';
         html += `
-          <tr style="${rowClass}">
-            <td style="padding:10px; border-right:1px solid var(--border);">${this.app.escapeHtml(item.partNumber || '')}</td>
-            <td style="padding:10px; border-right:1px solid var(--border);">${this.app.escapeHtml(item.partName || '')}</td>
-            <td style="padding:10px; border-right:1px solid var(--border);">${this.app.escapeHtml(item.family || '')}</td>
-            <td style="padding:10px; text-align:center;">
-              <button class="btn" style="margin:0 5px;" onclick="app.defectTracker.openEditPartModal('${this.app.escapeHtml(item.partNumber || '')}')">Edit</button>
-              <button class="btn btn-danger" style="margin:0 5px;" onclick="app.defectTracker.deletePart('${this.app.escapeHtml(item.partNumber || '')}')">DEL</button>
-            </td>
-          </tr>
+            <tr style="${rowClass}">
+                <td style="padding:10px; border-right:1px solid var(--border);">${item.partNumber}</td>
+                <td style="padding:10px; border-right:1px solid var(--border);">${item.partName}</td>
+                <td style="padding:10px; border-right:1px solid var(--border);">${item.family}</td>
+                <td style="padding:10px; text-align:center;">
+                    <button class="btn" style="margin:0 5px;" onclick="app.defectTracker.openEditPartModal('${item.partNumber}')">Edit</button>
+                    <button class="btn btn-danger" style="margin:0 5px;" onclick="app.defectTracker.deletePart('${item.partNumber}')">DEL</button>
+                </td>
+            </tr>
         `;
     });
     tableBody.innerHTML = html;
@@ -4006,18 +3716,7 @@ class DefectTracker {
       }
     };
 
-    try {
-      this._reportsChart = new Chart(ctx, config);
-    } catch (chartErr) {
-      console.error('Chart rendering failed:', chartErr);
-      this.app.showToast('Chart error: unable to render report. Falling back to table view.', 'error');
-      // Fallback: show a simple table instead of chart
-      const tableFallback = this._renderTableForGrouped(grouped, groupBy, metric);
-      content.innerHTML = '';
-      content.appendChild(tableFallback);
-      this._reportsChart = null;
-      return;
-    }
+    this._reportsChart = new Chart(ctx, config);
 
     // Fill details with first group by default
     if (grouped.length > 0) {
@@ -4353,12 +4052,8 @@ window.handleUpdateTask = function(id, changes) {
 };
 </script>
 <script> 
-// Initialize the sync for the first time ONLY if already authenticated
-if (app && app.authenticated) {
-  app.initRealtimeSync();
-} else {
-  console.log('Deferred realtime sync until login');
-}
+// Initialize the sync for the first time
+app.initRealtimeSync();
 
 // The "Background Sinker" - stops data usage when tab is hidden
 document.addEventListener("visibilitychange", () => {
@@ -4371,15 +4066,16 @@ document.addEventListener("visibilitychange", () => {
         }
     } else {
         // Restart the listener when the user returns
-        if (app && app.authenticated) {
-          app.initRealtimeSync();
-          console.log("Sync resumed (Tab Active)");
+        if (app) {
+            app.initRealtimeSync();
+            console.log("Sync resumed (Tab Active)");
         }
     }
 });
 </script>
 </body>
 </html>
+
 
 
 
