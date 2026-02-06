@@ -1122,7 +1122,7 @@ class ClarityApp {
       tasks: [],
       theme: 'void',
       filter: '',
-      mode: 'kanban' 
+      mode: 'kanban'
     };
 
     // 2. Setup the internal managers
@@ -1151,6 +1151,15 @@ class ClarityApp {
         console.log('[localSnapshot] Loaded local snapshot');
       }
     } catch (e) { console.warn('Failed to load local snapshot', e); }
+    // Load UI preferences (local only)
+    try {
+      const prefsRaw = localStorage.getItem('clarity_ui_prefs');
+      if (prefsRaw) {
+        const prefs = JSON.parse(prefsRaw);
+        if (prefs && prefs.theme) this.state.theme = prefs.theme;
+        if (prefs && prefs.mode) this.state.mode = prefs.mode;
+      }
+    } catch (e) { console.warn('Failed to load local UI prefs', e); }
     // Auth state listener: keep UI and sync lifecycle in sync with Firebase auth
     try {
       auth.onAuthStateChanged((user) => {
@@ -1464,6 +1473,7 @@ login() {
     }
     // Auto-close settings modal if open when mode changes
     document.getElementById('hud-settings-modal')?.classList.remove('visible');
+    try { localStorage.setItem('clarity_ui_prefs', JSON.stringify({ theme: this.state.theme, mode: this.state.mode })); } catch(e) {}
     this.saveState();
   }
 
@@ -2098,6 +2108,7 @@ updateTask(id, changes) {
   setTheme(themeName) {
     document.documentElement.setAttribute('data-theme', themeName);
     this.state.theme = themeName;
+    try { localStorage.setItem('clarity_ui_prefs', JSON.stringify({ theme: this.state.theme, mode: this.state.mode })); } catch(e) {}
     this.saveState();
     if (this.state.mode === 'defects') this.defectTracker.render();
   }
@@ -2291,10 +2302,8 @@ updateTask(id, changes) {
         filter: 'input,textarea,select,button',
         preventOnFilter: false,
         onStart: () => app.autoScrollManager.pauseForInteraction(),
-        // Use onAdd and onUpdate to handle cross-list moves and reorders reliably
-        onAdd: (evt) => this.handleDrop(evt),
-        onUpdate: (evt) => this.handleDrop(evt),
-        onEnd: (evt) => { /* no-op: handled by onAdd/onUpdate */ }
+        // Use onEnd only — handleAdd + handleUpdate together can cause duplicate runs
+        onEnd: (evt) => this.handleDrop(evt)
       });
     });
 
@@ -2319,53 +2328,55 @@ updateTask(id, changes) {
 
   // --- THE "BULLETPROOF" LOGIC FIX ---
   handleDrop(evt) {
-    const taskId = evt.item.dataset.id;
-    const toCol = evt.to.closest('.column');
-    
-    // Safety: If dropped outside a valid column, cancel.
-    if (!toCol) return;
+    // Guard to avoid handling duplicate Sortable events
+    if (this._processingDrop) return;
+    this._processingDrop = true;
 
+    const taskId = evt.item && evt.item.dataset ? evt.item.dataset.id : null;
+    const toCol = evt.to ? evt.to.closest('.column') : null;
+    if (!taskId || !toCol) { this._processingDrop = false; return; }
+
+    // Apply move
     this.historyManager.push();
     const newPerson = toCol.dataset.person;
     const task = this.state.tasks.find(t => t.id === taskId);
-    
+    if (!task) { this._processingDrop = false; return; }
+
     if (task.person !== newPerson) {
-        task.person = newPerson;
-        this.showToast(`Moved to ${newPerson}`);
+      task.person = newPerson;
+      this.showToast(`Moved to ${newPerson}`);
     }
 
-    // --- SMART DATE SNAPPING LOGIC ---
-    // Always update to the most common date in the target column
-    
+    // SMART DATE SNAPPING: set to most common date in the target column
     const siblings = Array.from(evt.to.querySelectorAll('.task-card'));
-    let targetDate = task.date; // Default to self
-
+    let targetDate = task.date;
     if (siblings.length > 0) {
-      const columnTasks = siblings.map(s => this.state.tasks.find(t => t.id === s.dataset.id)).filter(t => t.id !== task.id);
+      const columnTasks = siblings.map(s => this.state.tasks.find(t => t.id === s.dataset.id)).filter(t => t && t.id !== task.id);
       if (columnTasks.length > 0) {
         const dateCount = {};
         columnTasks.forEach(t => dateCount[t.date] = (dateCount[t.date] || 0) + 1);
         const mostCommon = Object.keys(dateCount).reduce((a, b) => dateCount[a] > dateCount[b] ? a : b);
-        targetDate = mostCommon;
+        if (mostCommon) targetDate = mostCommon;
       }
     }
 
     if (task.date !== targetDate) {
-        task.date = targetDate;
-        this.showToast(`Rescheduled to ${targetDate}`);
+      task.date = targetDate;
+      this.showToast(`Rescheduled to ${targetDate}`);
     }
 
-    // Update Sort Order
+    // Update sort order by DOM order
     const newIds = siblings.map(el => el.dataset.id);
     this.state.tasks.forEach(t => {
-        if (t.person === newPerson) {
-            const idx = newIds.indexOf(t.id);
-            if (idx !== -1) t.sortOrder = idx;
-        }
+      if (t.person === newPerson) {
+        const idx = newIds.indexOf(t.id);
+        if (idx !== -1) t.sortOrder = idx;
+      }
     });
-    // Force an immediate cloud write for drag operations so UI and server stay in sync
+
+    // Persist immediately and defer heavy re-render slightly so Sortable completes DOM changes
     try { this.saveState(true); } catch(e) { this.saveState(); }
-    this.renderBoard();
+    setTimeout(() => { try { this.renderBoard(); } catch(e){} this._processingDrop = false; }, 80);
   }
 
   setupGlobalListeners() {
