@@ -1132,6 +1132,8 @@ const auth = firebase.auth();
 class ClarityApp {
   constructor() {
    this.syncUnsubscribe = null;
+    // Indicates the app has completed its initial realtime load and is safe to write cloud updates
+    this.initialized = false;
     // 1. We keep the basic structure, but start with empty arrays
     this.state = {
       columns: [], 
@@ -1218,6 +1220,8 @@ login() {
             // If the database is empty, create the first save
             this.saveState();
         }
+          // Mark app as initialized after we processed the first snapshot (prevents accidental early writes)
+          if (!this.initialized) this.initialized = true;
     });
 }
   // --- MIGRATION & SANITIZATION (STABILITY) ---
@@ -2368,8 +2372,10 @@ class DefectTracker {
   saveRedTags() {
     try {
       localStorage.setItem('clarity_red_tags', JSON.stringify(this.redTags));
-      // Ensure cloud copy is updated so edits/saves sync for all clients
-      if (this.app && typeof this.app.saveState === 'function') this.app.saveState();
+      // Only push to cloud after the app has completed initial realtime load
+      if (this.app && this.app.initialized && typeof this.app.saveState === 'function') {
+        this.app.saveState();
+      }
     } catch (e) {
       console.error('saveRedTags error', e);
     }
@@ -2391,7 +2397,9 @@ class DefectTracker {
   saveSummaryParts() {
     try {
       localStorage.setItem('clarity_summary_parts', JSON.stringify(this.summaryParts));
-      if (this.app && typeof this.app.saveState === 'function') this.app.saveState();
+      if (this.app && this.app.initialized && typeof this.app.saveState === 'function') {
+        this.app.saveState();
+      }
     } catch (e) {
       console.error('saveSummaryParts error', e);
     }
@@ -2405,7 +2413,9 @@ class DefectTracker {
   saveRedTagTrash() {
     try {
       localStorage.setItem('clarity_red_tag_trash', JSON.stringify(this.redTagTrash));
-      if (this.app && typeof this.app.saveState === 'function') this.app.saveState();
+      if (this.app && this.app.initialized && typeof this.app.saveState === 'function') {
+        this.app.saveState();
+      }
     } catch (e) {
       console.error('saveRedTagTrash error', e);
     }
