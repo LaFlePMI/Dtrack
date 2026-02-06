@@ -542,8 +542,6 @@ body {
     <div style="display:flex; justify-content:space-between; align-items:center; padding:10px; background:var(--bg-panel); border-bottom:1px solid var(--border);">
       <span style="color:var(--accent); font-weight:700;">NC Record List</span>
       <div style="display:flex; gap:8px; align-items:center;">
-        <button id="table-new-nc" class="btn btn-primary" onclick="app.defectTracker.prepareAddNC()">+ NEW NC</button>
-        <button id="table-view-reports" class="btn" onclick="app.defectTracker.openReportsModal()">📊 View Reports</button>
       </div>
     </div>
     <table id="red-tag-table" class="min-w-full divide-y divide-[var(--border)] border-collapse">
@@ -4050,11 +4048,6 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 </script>
 
-<!-- Floating quick-actions (always visible) -->
-<div id="floating-rt-actions" class="floating-rt hidden" aria-hidden="true">
-  <button id="floating-new-nc" class="btn btn-primary floating-btn" title="New NC">+ NC</button>
-  <button id="floating-view-reports" class="btn floating-btn" title="View Reports">📊</button>
-</div>
 
 <script>
 // Ensure we have a ClarityApp instance (in case something loaded out of order)
@@ -4171,6 +4164,7 @@ document.addEventListener("visibilitychange", () => {
 </script>
 </body>
 </html>
+
 
 
 
