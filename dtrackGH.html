@@ -518,6 +518,11 @@ body {
   <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
     <h1 style="font-size:2rem; font-weight:900; color:var(--accent); text-shadow:0 0 20px var(--accent-glow);">RED TAG TRACKER</h1>
   </div>
+  <!-- Top quick-actions: New NC + Generate Report (sticky at top of defect view) -->
+  <div style="display:flex; justify-content:flex-end; gap:8px; margin-bottom:12px;">
+    <button class="btn btn-primary" onclick="app.defectTracker.prepareAddNC()">+ NEW NC</button>
+    <button class="btn" onclick="(function(){app.defectTracker.openReportsModal(); setTimeout(()=>{ try{ app.defectTracker._renderReportFromControls(); }catch(e){} },150); })()">Generate Report</button>
+  </div>
   <div style="display:flex; gap:10px; margin-bottom:20px;">
     <div style="flex:1;">
       <label style="font-size:0.8rem; color:var(--text-muted);">Search (NC#, Serial, Part...)</label>
@@ -3868,6 +3873,9 @@ class DefectTracker {
 
   closeReportsModal() {
     document.getElementById('reports-modal').classList.remove('visible');
+    try {
+      if (this._reportsChart) { this._reportsChart.destroy(); this._reportsChart = null; }
+    } catch(e) { console.error('Error destroying reports chart', e); }
   }
 
   closeAddModal() {
