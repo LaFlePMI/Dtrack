@@ -1176,6 +1176,12 @@ class ClarityApp {
     this.idle = false;
     const activityHandler = () => { try { this._resetIdleTimer(); } catch(e){} };
     ['mousemove','keydown','scroll','touchstart'].forEach(ev => window.addEventListener(ev, activityHandler, {passive:true}));
+    // Keep app idle state in sync with tab visibility
+    document.addEventListener('visibilitychange', () => {
+      try {
+        if (document.hidden) this._markIdle(); else this._resetIdleTimer();
+      } catch(e) { /* safe-fail */ }
+    });
     this._resetIdleTimer();
   }
 login() {
@@ -1488,7 +1494,7 @@ login() {
 
   // --- STATE MANAGEMENT ---
   
-  saveState() {
+  saveState(forceCloud = false) {
     // 1. Package all current app data into one object
     const nowIso = new Date().toISOString();
     const nowMs = Date.now();
@@ -1508,8 +1514,18 @@ login() {
     // 1b. Always persist a local snapshot so users can work offline
     try { localStorage.setItem(this.localSnapshotKey, JSON.stringify(dataToSave)); } catch (e) { /* best-effort */ }
 
-    // Note: we always persist a local snapshot, but only mark a "local change"
-    // for conflict-resolution when we're actually about to write to the cloud.
+    // Note: always persist local snapshot first
+    if (forceCloud && this.authenticated) {
+      // Immediate cloud write requested and we're authenticated: write now
+      if (this.saveTimeout) { clearTimeout(this.saveTimeout); this.saveTimeout = null; }
+      this.lastLocalChange = Date.now();
+      db.collection('appData').doc('main').set(dataToSave, { merge: true })
+        .then(() => { console.log('Cloud update (immediate) successful'); this.lastRemoteApplied = Date.now(); })
+        .catch((error) => { console.error('Cloud save error:', error); this.showToast('Save Failed: ' + error.message, 'error'); });
+      return; // done
+    }
+
+    // Debounced cloud write (reduces congestion when multiple users edit quickly)
     if (this.saveTimeout) clearTimeout(this.saveTimeout);
     this.saveTimeout = setTimeout(() => {
       if (!this.authenticated) { console.log('saveState: deferred cloud write (unauthenticated)'); return; }
@@ -2347,8 +2363,8 @@ updateTask(id, changes) {
             if (idx !== -1) t.sortOrder = idx;
         }
     });
-
-    this.saveState();
+    // Force an immediate cloud write for drag operations so UI and server stay in sync
+    try { this.saveState(true); } catch(e) { this.saveState(); }
     this.renderBoard();
   }
 
