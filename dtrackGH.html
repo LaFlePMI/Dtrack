@@ -2234,6 +2234,8 @@ new Sortable(contentDiv, {
 }
 
 // --- WORK ORDER MANAGER ---
+// --- WORK ORDER MANAGEMENT (OPTIMIZED FOR DOCUMENT NUMBER) ---
+// --- WORK ORDER MANAGEMENT (OPTIMIZED FOR DOCUMENT NUMBER) ---
 class WorkOrderManager {
   constructor(app) {
     this.app = app;
@@ -2252,137 +2254,128 @@ class WorkOrderManager {
         const workbook = XLSX.read(data, { type: 'array' });
         const sheetName = workbook.SheetNames[0];
         const worksheet = workbook.Sheets[sheetName];
-        const rows = XLSX.utils.sheet_to_json(worksheet, { defval: '' });
+        
+        // raw: false preserves formatting so "Document Number" stays a string
+        const rows = XLSX.utils.sheet_to_json(worksheet, { defval: "", raw: false });
 
         if (!rows || rows.length === 0) {
-          this.app.showToast('No data found in Excel file', 'error');
-          input.value = '';
+          this.app.showToast('Excel file appears to be empty.', 'error');
           return;
         }
 
-        // Parse work orders from Excel
-        const newWorkOrders = [];
-        rows.forEach((row, idx) => {
-          // Try to find work order column (case-insensitive)
-          const woKey = Object.keys(row).find(k => k.toLowerCase().includes('work') || k.toLowerCase().includes('order'));
-          const nameKey = Object.keys(row).find(k => k.toLowerCase().includes('name'));
-          const descKey = Object.keys(row).find(k => k.toLowerCase().includes('desc'));
-          const qtyKey = Object.keys(row).find(k => k.toLowerCase().includes('qty'));
-          const buildKey = Object.keys(row).find(k => k.toLowerCase().includes('build'));
+        // Logic to find specific headers from the snippet
+        const findKey = (row, possibilities) => {
+          return Object.keys(row).find(k => 
+            possibilities.some(p => k.toLowerCase().trim() === p.toLowerCase())
+          );
+        };
 
-          const workOrder = row[woKey] || `WO-${idx}`;
-          const name = row[nameKey] || '';
-          const description = row[descKey] || '';
-          const qty = row[qtyKey] || '';
-          const buildable = row[buildKey] || '';
+        const firstRow = rows[0];
+        const keys = {
+          wo: findKey(firstRow, ['Document Number', 'Doc #', 'Work Order']),
+          name: findKey(firstRow, ['Name', 'Item']),
+          desc: findKey(firstRow, ['Description']),
+          qty: findKey(firstRow, ['Quantity', 'Qty']),
+          left: findKey(firstRow, ['Left to Build', 'Remaining'])
+        };
 
-          if (workOrder) {
-            newWorkOrders.push({
-              workOrder: String(workOrder).trim(),
-              name: String(name).trim(),
-              description: String(description).trim(),
-              qty: String(qty).trim(),
-              buildable: String(buildable).trim()
-            });
-          }
-        });
+        if (!keys.wo) {
+          this.app.showToast('Could not find "Document Number" column.', 'error');
+          return;
+        }
 
-        // Replace old work orders with new ones
-        this.workOrders = newWorkOrders;
+        this.workOrders = rows.map(row => ({
+          workOrder: String(row[keys.wo] || '').trim().toUpperCase(),
+          name: String(row[keys.name] || '').trim(),
+          description: String(row[keys.desc] || '').trim(),
+          qty: String(row[keys.qty] || '').trim(),
+          remaining: String(row[keys.left] || '').trim()
+        })).filter(wo => wo.workOrder.length > 0);
+
         this.app.saveState();
-        this.app.showToast(`✓ Loaded ${newWorkOrders.length} work orders`);
-        input.value = '';
+        this.app.showToast(`✓ Successfully loaded ${this.workOrders.length} orders`);
+        input.value = ''; 
       } catch (err) {
-        console.error('Excel parse error:', err);
-        this.app.showToast('Error parsing Excel file: ' + err.message, 'error');
-        input.value = '';
+        console.error('Upload Error:', err);
+        this.app.showToast('Error reading Excel: ' + err.message, 'error');
       }
     };
-
     reader.readAsArrayBuffer(file);
   }
 
-  populateFromWorkOrder(taskId, woNumber) {
-    if (!woNumber.trim()) return;
+  populateFromWorkOrder(taskId, rawInput) {
+    if (!rawInput) return;
+    const search = rawInput.trim().toUpperCase();
 
-    const wo = this.workOrders.find(w => w.workOrder.toLowerCase() === woNumber.toLowerCase());
-    if (!wo) {
-      this.app.showToast(`Work Order "${woNumber}" not found - WO built/closed`, 'error');
+    if (this.workOrders.length === 0) {
+      this.app.showToast('Please upload the Work Order Book first.', 'error');
       return;
     }
 
-    // Update task with work order data
-    const task = this.app.state.tasks.find(t => t.id === taskId);
-    if (!task) return;
+    const wo = this.workOrders.find(w => w.workOrder === search);
 
-    task.workOrder = wo.workOrder;
-    task.title = `${wo.workOrder} - ${wo.name}`;
-    if (!task.notes) {
-      task.notes = `Qty: ${wo.qty}\nBuildable: ${wo.buildable}\n${wo.description}`;
+    if (!wo) {
+      this.app.showToast(`Order #${search} not found. It may be closed or built.`, 'error');
+      return;
     }
 
-    this.app.historyManager.push();
-    this.app.saveState();
-    this.app.renderBoard();
-    this.app.showToast(`✓ Populated from ${wo.workOrder}`);
+    const task = this.app.state.tasks.find(t => t.id === taskId);
+    if (task) {
+      task.workOrder = wo.workOrder;
+      task.title = `${wo.workOrder} - ${wo.name}`;
+      
+      const details = `Qty: ${wo.qty} | Left to Build: ${wo.remaining}\nDescription: ${wo.description}`;
+      if (!task.notes) task.notes = details;
+
+      if (this.app.historyManager) this.app.historyManager.push();
+      this.app.saveState();
+      this.app.renderBoard();
+      this.app.showToast(`Linked to Document #${wo.workOrder}`);
+    }
   }
 
   clearWorkOrder(taskId) {
     const task = this.app.state.tasks.find(t => t.id === taskId);
-    if (!task) return;
-    
-    task.workOrder = '';
-    this.app.historyManager.push();
-    this.app.saveState();
-    this.app.renderBoard();
-    this.app.showToast('Work order cleared');
+    if (task) {
+      task.workOrder = '';
+      this.app.saveState();
+      this.app.renderBoard();
+    }
   }
 
   openManageModal() {
     const modal = document.getElementById('workorder-manage-modal');
     if (!modal) return;
-
-    // Render table
     const tbody = document.getElementById('workorder-table-body');
-    const woCount = document.getElementById('wo-count');
-    
-    if (!tbody) return;
-
-    woCount.textContent = `${this.workOrders.length} Work Orders`;
-    tbody.innerHTML = '';
-
-    this.workOrders.forEach((wo, idx) => {
-      const row = document.createElement('tr');
-      row.style.background = 'var(--bg-card)';
-      row.innerHTML = `
-        <td style="padding:10px; border-right:1px solid var(--border);">${this.app.escapeHtml(wo.workOrder)}</td>
-        <td style="padding:10px; border-right:1px solid var(--border);">${this.app.escapeHtml(wo.name)}</td>
-        <td style="padding:10px; border-right:1px solid var(--border); max-width:200px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${this.app.escapeHtml(wo.description)}</td>
-        <td style="padding:10px; border-right:1px solid var(--border);">${this.app.escapeHtml(wo.qty)}</td>
-        <td style="padding:10px; border-right:1px solid var(--border);">${this.app.escapeHtml(wo.buildable)}</td>
-        <td style="padding:10px;">
-          <button class="btn btn-danger" onclick="app.workOrderManager.deleteWorkOrder(${idx})" style="padding:4px 8px; font-size:0.75rem;">Delete</button>
-        </td>
-      `;
-      tbody.appendChild(row);
-    });
-
+    if (tbody) {
+      tbody.innerHTML = this.workOrders.slice(0, 100).map((wo, index) => `
+        <tr style="border-bottom: 1px solid var(--border);">
+          <td style="padding:10px; font-weight:bold;">${this.app.escapeHtml(wo.workOrder)}</td>
+          <td style="padding:10px;">${this.app.escapeHtml(wo.name)}</td>
+          <td style="padding:10px;">${this.app.escapeHtml(wo.qty)}</td>
+          <td style="padding:10px; color:var(--accent);">${this.app.escapeHtml(wo.remaining)}</td>
+          <td style="padding:10px;">
+            <button class="btn btn-danger" onclick="app.workOrderManager.deleteWorkOrder(${index})">DEL</button>
+          </td>
+        </tr>
+      `).join('');
+    }
     modal.classList.add('visible');
   }
 
   deleteWorkOrder(index) {
     if (!confirm('Delete this work order?')) return;
     this.workOrders.splice(index, 1);
-    this.app.historyManager.push();
+    if (this.app.historyManager) this.app.historyManager.push();
     this.app.saveState();
     this.app.showToast('Work order deleted');
-    this.openManageModal(); // Refresh the modal
+    this.openManageModal(); 
   }
 
   deleteAllWorkOrders() {
     if (!confirm('Delete ALL work orders? This cannot be undone.')) return;
     this.workOrders = [];
-    this.app.historyManager.push();
+    if (this.app.historyManager) this.app.historyManager.push();
     this.app.saveState();
     this.app.showToast('All work orders deleted');
     this.closeManageModal();
@@ -4414,6 +4407,7 @@ document.addEventListener("visibilitychange", () => {
 </script>
 </body>
 </html>
+
 
 
 
