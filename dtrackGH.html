@@ -2322,9 +2322,11 @@ class WorkOrderManager {
     const task = this.app.state.tasks.find(t => t.id === taskId);
     if (task) {
       task.workOrder = wo.workOrder;
-      task.title = `${wo.workOrder} - ${wo.name}`;
+      task.title = `${wo.workOrder} - ${wo.name} - Qty: ${wo.qty} |Description: ${wo.description} - Remaining: ${wo.remaining} `;
       
-      const details = `Qty: ${wo.qty} | Left to Build: ${wo.remaining}\nDescription: ${wo.description}`;
+      const details = `Missing Part: 
+Due date: 
+Tracking: `;
       if (!task.notes) task.notes = details;
 
       if (this.app.historyManager) this.app.historyManager.push();
@@ -4407,6 +4409,7 @@ document.addEventListener("visibilitychange", () => {
 </script>
 </body>
 </html>
+
 
 
 
