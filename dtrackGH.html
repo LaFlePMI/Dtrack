@@ -2118,18 +2118,13 @@ updateTask(id, changes) {
 
         // Expansion Toggle - Allow free editing when expanded
         card.onclick = (e) => {
-            // Don't collapse if clicking on buttons, inputs, textareas, or selects
             if(['INPUT','SELECT','TEXTAREA','BUTTON'].includes(e.target.tagName)) return;
-            
-            // Don't collapse if clicking inside the edit area
-            if (e.target.closest('.edit-area')) return;
-            
-            // Only toggle if clicking on the title or task-meta area (collapse by clicking there)
             card.classList.toggle('expanded');
         };
 
         contentDiv.appendChild(card);
       });
+
 
       // Quick Add
       const quickAdd = document.createElement('div');
@@ -4415,6 +4410,7 @@ document.addEventListener("visibilitychange", () => {
 </script>
 </body>
 </html>
+
 
 
 
