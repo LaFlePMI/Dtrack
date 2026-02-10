@@ -7,6 +7,7 @@
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
@@ -604,6 +605,15 @@ body {
         </div>
 
         <div style="grid-column: 1 / -1; background:var(--bg-panel); padding:12px; border:1px solid var(--border); border-radius:6px;">
+          <h3 style="margin:0 0 8px 0; color:var(--text-main); font-size:0.95rem;">Work Order Management</h3>
+          <div style="display:flex; gap:8px; flex-wrap:wrap;">
+            <button class="btn btn-primary" onclick="document.getElementById('workorder-upload-file').click()">📁 Upload Excel Workbook</button>
+            <button class="btn" onclick="app.workOrderManager.openManageModal()">🔧 Manage Work Orders</button>
+            <input type="file" id="workorder-upload-file" style="display:none" accept=".xls,.xlsx,.xlsm" onchange="app.workOrderManager.handleFileUpload(this)">
+          </div>
+        </div>
+
+        <div style="grid-column: 1 / -1; background:var(--bg-panel); padding:12px; border:1px solid var(--border); border-radius:6px;">
           <h3 style="margin:0 0 8px 0; color:var(--text-main); font-size:0.95rem;">Data & Utilities</h3>
           <div style="display:flex; gap:8px; flex-wrap:wrap;">
             <button class="btn btn-primary" onclick="app.ioManager.export()">⬇️ Export</button>
@@ -615,6 +625,36 @@ body {
       </div>
     </div>
   </div>
+
+<!-- WORK ORDER MANAGEMENT MODAL -->
+<div id="workorder-manage-modal" class="modal">
+    <div class="modal-content" style="max-width: 900px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+            <h2 style="color:var(--accent);">Work Order Database</h2>
+            <div style="display:flex; gap:8px; align-items:center;">
+                <span id="wo-count" style="color:var(--text-muted); font-size:0.9rem;">--</span>
+                <button class="btn btn-danger" onclick="app.workOrderManager.deleteAllWorkOrders()" title="Delete all work orders">🗑️ Clear All</button>
+                <button onclick="app.workOrderManager.closeManageModal()" class="btn">Close</button>
+            </div>
+        </div>
+        <div id="workorder-table-container" class="table-container shadow-md rounded-lg border border-[var(--border)] max-h-80">
+            <table class="min-w-full divide-y divide-[var(--border)]">
+                <thead style="background: var(--bg-panel); position:sticky; top:0;">
+                    <tr>
+                        <th style="padding:10px; text-align:left; color:var(--accent); font-weight:800; font-size:0.9rem; border-right:1px solid var(--border);">Work Order</th>
+                        <th style="padding:10px; text-align:left; color:var(--accent); font-weight:800; font-size:0.9rem; border-right:1px solid var(--border);">Name</th>
+                        <th style="padding:10px; text-align:left; color:var(--accent); font-weight:800; font-size:0.9rem; border-right:1px solid var(--border);">Description</th>
+                        <th style="padding:10px; text-align:left; color:var(--accent); font-weight:800; font-size:0.9rem; border-right:1px solid var(--border);">Qty</th>
+                        <th style="padding:10px; text-align:left; color:var(--accent); font-weight:800; font-size:0.9rem; border-right:1px solid var(--border);">Buildable</th>
+                        <th style="padding:10px; text-align:left; color:var(--accent); font-weight:800; font-size:0.9rem;">Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="workorder-table-body" class="min-w-full divide-y divide-[var(--border)]" style="background: var(--bg-main);">
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
 
 <div id="trash-modal" class="modal">
     <div class="modal-content">
@@ -1157,6 +1197,7 @@ class ClarityApp {
     this.ioManager = new IOManager(this);
     this.autoScrollManager = new AutoScrollManager(); 
     this.defectTracker = new DefectTracker(this);
+    this.workOrderManager = new WorkOrderManager(this);
     
     // 3. IMPORTANT: Notice we REMOVED this.init() and migrationCheck().
     // We don't want the app to "start" until the login is successful.
@@ -1205,6 +1246,11 @@ login() {
                 this.defectTracker.summaryParts = data.summaryParts || [];
             }
 
+            // 4b. Update Work Order data if it exists
+            if (this.workOrderManager) {
+                this.workOrderManager.workOrders = data.workOrders || [];
+            }
+
             // NOTE: We skip 'theme' and 'mode' here so your screen doesn't 
             // change just because someone else changed theirs.
 
@@ -1248,7 +1294,8 @@ login() {
         status: t.status || 'none',
         priority: t.priority || 'medium',
         notes: t.notes || '',
-        tags: t.tags || [], // UPGRADE: New field
+        tags: t.tags || [],
+        workOrder: t.workOrder || '', // NEW: Work order field
         sortOrder: t.sortOrder !== undefined ? t.sortOrder : Date.now(),
         deleted: t.deleted === true,
         archived: t.archived === true, 
@@ -1327,7 +1374,8 @@ login() {
       tasks: this.state.tasks,
       // We also include the Defect Tracker data so everything stays in sync
       redTags: this.defectTracker ? this.defectTracker.redTags : [],
-      summaryParts: this.defectTracker ? this.defectTracker.summaryParts : []
+      summaryParts: this.defectTracker ? this.defectTracker.summaryParts : [],
+      workOrders: this.workOrderManager ? this.workOrderManager.workOrders : []
     };
 
     // 2. Upload to Firestore
@@ -1381,6 +1429,7 @@ updateTask(id, changes) {
       priority: 'medium',
       notes: '',
       tags: [],
+      workOrder: '', // NEW: Initialize empty work order
       sortOrder: Date.now(),
       deleted: false,
       archived: false,
@@ -2031,7 +2080,15 @@ updateTask(id, changes) {
           </div>
           
           <div class="edit-area">
-            <input id="title-edit-${task.id}" class="nexus-input" style="width:100%; margin-bottom:5px;" value="${this.escapeHtml(task.title)}" onkeydown="if(event.key==='Enter'){event.preventDefault(); app.saveAndCollapseTaskCard('${task.id}');}">
+            <div style="margin-bottom:8px;">
+              <label style="display:block; font-size:0.8rem; color:var(--text-muted); margin-bottom:3px;">Work Order</label>
+              <div style="display:flex; gap:4px;">
+                <input id="workorder-${task.id}" class="nexus-input" style="flex:1;" placeholder="Enter work order #" value="${this.escapeHtml(task.workOrder || '')}" onchange="app.workOrderManager.populateFromWorkOrder('${task.id}', this.value)">
+                <button class="btn" style="padding:8px 12px;" onclick="app.workOrderManager.clearWorkOrder('${task.id}')" title="Clear work order">✕</button>
+              </div>
+            </div>
+            
+            <input id="title-edit-${task.id}" class="nexus-input" style="width:100%; margin-bottom:5px;" placeholder="Task Title" value="${this.escapeHtml(task.title)}" onkeydown="if(event.key==='Enter'){event.preventDefault(); app.saveAndCollapseTaskCard('${task.id}');}">
             <input id="tags-${task.id}" class="nexus-input" style="width:100%; margin-bottom:5px;" placeholder="Tags (comma separated)" value="${(task.tags||[]).join(', ')}">
             
             <div style="display:flex; gap:5px; margin-bottom:5px;">
@@ -2085,6 +2142,7 @@ updateTask(id, changes) {
         ghostClass: 'opacity-50',
         dragClass: 'opacity-100',
         forceFallback: false, // Better mobile performance
+        filter: '.expanded', // Don't allow dragging when task is expanded
         onStart: () => app.autoScrollManager.pauseForInteraction(),
         onEnd: (evt) => this.handleDrop(evt)
       });
@@ -2167,6 +2225,167 @@ updateTask(id, changes) {
         this.historyManager.undo();
       }
     });
+  }
+}
+
+// --- WORK ORDER MANAGER ---
+class WorkOrderManager {
+  constructor(app) {
+    this.app = app;
+    this.workOrders = [];
+  }
+
+  handleFileUpload(input) {
+    if (!input.files || !input.files[0]) return;
+    
+    const file = input.files[0];
+    const reader = new FileReader();
+
+    reader.onload = (e) => {
+      try {
+        const data = new Uint8Array(e.target.result);
+        const workbook = XLSX.read(data, { type: 'array' });
+        const sheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[sheetName];
+        const rows = XLSX.utils.sheet_to_json(worksheet, { defval: '' });
+
+        if (!rows || rows.length === 0) {
+          this.app.showToast('No data found in Excel file', 'error');
+          input.value = '';
+          return;
+        }
+
+        // Parse work orders from Excel
+        const newWorkOrders = [];
+        rows.forEach((row, idx) => {
+          // Try to find work order column (case-insensitive)
+          const woKey = Object.keys(row).find(k => k.toLowerCase().includes('work') || k.toLowerCase().includes('order'));
+          const nameKey = Object.keys(row).find(k => k.toLowerCase().includes('name'));
+          const descKey = Object.keys(row).find(k => k.toLowerCase().includes('desc'));
+          const qtyKey = Object.keys(row).find(k => k.toLowerCase().includes('qty'));
+          const buildKey = Object.keys(row).find(k => k.toLowerCase().includes('build'));
+
+          const workOrder = row[woKey] || `WO-${idx}`;
+          const name = row[nameKey] || '';
+          const description = row[descKey] || '';
+          const qty = row[qtyKey] || '';
+          const buildable = row[buildKey] || '';
+
+          if (workOrder) {
+            newWorkOrders.push({
+              workOrder: String(workOrder).trim(),
+              name: String(name).trim(),
+              description: String(description).trim(),
+              qty: String(qty).trim(),
+              buildable: String(buildable).trim()
+            });
+          }
+        });
+
+        // Replace old work orders with new ones
+        this.workOrders = newWorkOrders;
+        this.app.saveState();
+        this.app.showToast(`✓ Loaded ${newWorkOrders.length} work orders`);
+        input.value = '';
+      } catch (err) {
+        console.error('Excel parse error:', err);
+        this.app.showToast('Error parsing Excel file: ' + err.message, 'error');
+        input.value = '';
+      }
+    };
+
+    reader.readAsArrayBuffer(file);
+  }
+
+  populateFromWorkOrder(taskId, woNumber) {
+    if (!woNumber.trim()) return;
+
+    const wo = this.workOrders.find(w => w.workOrder.toLowerCase() === woNumber.toLowerCase());
+    if (!wo) {
+      this.app.showToast(`Work Order "${woNumber}" not found - WO built/closed`, 'error');
+      return;
+    }
+
+    // Update task with work order data
+    const task = this.app.state.tasks.find(t => t.id === taskId);
+    if (!task) return;
+
+    task.workOrder = wo.workOrder;
+    task.title = `${wo.workOrder} - ${wo.name}`;
+    if (!task.notes) {
+      task.notes = `Qty: ${wo.qty}\nBuildable: ${wo.buildable}\n${wo.description}`;
+    }
+
+    this.app.historyManager.push();
+    this.app.saveState();
+    this.app.renderBoard();
+    this.app.showToast(`✓ Populated from ${wo.workOrder}`);
+  }
+
+  clearWorkOrder(taskId) {
+    const task = this.app.state.tasks.find(t => t.id === taskId);
+    if (!task) return;
+    
+    task.workOrder = '';
+    this.app.historyManager.push();
+    this.app.saveState();
+    this.app.renderBoard();
+    this.app.showToast('Work order cleared');
+  }
+
+  openManageModal() {
+    const modal = document.getElementById('workorder-manage-modal');
+    if (!modal) return;
+
+    // Render table
+    const tbody = document.getElementById('workorder-table-body');
+    const woCount = document.getElementById('wo-count');
+    
+    if (!tbody) return;
+
+    woCount.textContent = `${this.workOrders.length} Work Orders`;
+    tbody.innerHTML = '';
+
+    this.workOrders.forEach((wo, idx) => {
+      const row = document.createElement('tr');
+      row.style.background = 'var(--bg-card)';
+      row.innerHTML = `
+        <td style="padding:10px; border-right:1px solid var(--border);">${this.app.escapeHtml(wo.workOrder)}</td>
+        <td style="padding:10px; border-right:1px solid var(--border);">${this.app.escapeHtml(wo.name)}</td>
+        <td style="padding:10px; border-right:1px solid var(--border); max-width:200px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${this.app.escapeHtml(wo.description)}</td>
+        <td style="padding:10px; border-right:1px solid var(--border);">${this.app.escapeHtml(wo.qty)}</td>
+        <td style="padding:10px; border-right:1px solid var(--border);">${this.app.escapeHtml(wo.buildable)}</td>
+        <td style="padding:10px;">
+          <button class="btn btn-danger" onclick="app.workOrderManager.deleteWorkOrder(${idx})" style="padding:4px 8px; font-size:0.75rem;">Delete</button>
+        </td>
+      `;
+      tbody.appendChild(row);
+    });
+
+    modal.classList.add('visible');
+  }
+
+  deleteWorkOrder(index) {
+    if (!confirm('Delete this work order?')) return;
+    this.workOrders.splice(index, 1);
+    this.app.historyManager.push();
+    this.app.saveState();
+    this.app.showToast('Work order deleted');
+    this.openManageModal(); // Refresh the modal
+  }
+
+  deleteAllWorkOrders() {
+    if (!confirm('Delete ALL work orders? This cannot be undone.')) return;
+    this.workOrders = [];
+    this.app.historyManager.push();
+    this.app.saveState();
+    this.app.showToast('All work orders deleted');
+    this.closeManageModal();
+  }
+
+  closeManageModal() {
+    const modal = document.getElementById('workorder-manage-modal');
+    if (modal) modal.classList.remove('visible');
   }
 }
 
