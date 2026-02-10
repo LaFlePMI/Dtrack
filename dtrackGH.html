@@ -2135,18 +2135,22 @@ updateTask(id, changes) {
       colDiv.appendChild(quickAdd);
       board.appendChild(colDiv);
 
-      // --- BULLETPROOF DRAG & DROP CONFIGURATION ---
-      new Sortable(contentDiv, {
-        group: 'clarity',
-        animation: 200, // Smoother animation
-        delay: 10, // Prevents accidental drags on touch
-        ghostClass: 'opacity-50',
-        dragClass: 'opacity-100',
-        forceFallback: false, // Better mobile performance
-        filter: '.expanded', // Don't allow dragging when task is expanded
-        onStart: () => app.autoScrollManager.pauseForInteraction(),
-        onEnd: (evt) => this.handleDrop(evt)
-      });
+      
+
+new Sortable(contentDiv, {
+  group: 'clarity',
+  animation: 200, 
+  delay: 10,
+  ghostClass: 'opacity-50',
+  dragClass: 'opacity-100',
+  forceFallback: false,
+  filter: '.expanded', // Don't allow dragging when task is expanded
+  
+  preventOnFilter: false, 
+  
+  onStart: () => app.autoScrollManager.pauseForInteraction(),
+  onEnd: (evt) => this.handleDrop(evt)
+});
     });
 
     // Grid Reordering
@@ -4410,6 +4414,7 @@ document.addEventListener("visibilitychange", () => {
 </script>
 </body>
 </html>
+
 
 
 
