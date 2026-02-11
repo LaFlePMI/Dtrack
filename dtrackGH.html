@@ -4289,14 +4289,28 @@ if (typeof ClarityApp.prototype.updateTask !== 'function') {
   console.log('✔ updateTask patch applied');
 
 // Provide a global helper so inline `onchange="handleUpdateTask(...)"` calls work
-window.handleUpdateTask = function(id, changes) {
+window.handleUpdateTask = function(id, field, value) {
   try {
-    if (!window.app || typeof window.app.updateTask !== 'function') return;
-    // Ensure we pass an object (some calls may pass non-objects)
-    const payload = (changes && typeof changes === 'object') ? changes : {};
+    // 1. Safety check for window.app
+    if (!window.app || typeof window.app.updateTask !== 'function') {
+      console.warn('App not fully initialized yet.');
+      return;
+    }
+
+    // 2. Prepare the payload
+    // This allows the function to handle both a single object OR field/value pairs
+    let payload = {};
+    if (field && typeof field === 'object') {
+      payload = field;
+    } else {
+      payload[field] = value;
+    }
+
+    // 3. Execute the update
     window.app.updateTask(id, payload);
+    
   } catch (e) {
-    console.error('handleUpdateTask error', e);
+    console.error('handleUpdateTask error:', e);
   }
 };
 }
