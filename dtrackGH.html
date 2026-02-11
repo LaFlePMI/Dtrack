@@ -1491,8 +1491,14 @@ login() {
             const overlay = document.getElementById('login-overlay');
             if (overlay) overlay.style.display = 'none';
             
-            // Now start the live data sync (Step C)
-            this.initRealtimeSync(); 
+            // Now start the live data sync and routing (Step C)
+            this.initRealtimeSync();
+            
+            // Initialize routing system after successful login
+            if (window._initRouting) {
+              window._initRouting();
+            }
+            
             this.showToast("Access Granted", "success");
         })
         .catch(error => {
@@ -4749,6 +4755,7 @@ window._initRouting = function() {
   }
   
   console.log('[Routing] Initializing routing system...');
+  window.app.routing = {
     hubData: {},
     activeId: null,
     history: [],
@@ -4877,9 +4884,9 @@ window._initRouting = function() {
   window._routingRetries = 0; // Reset counter on success
 };
 
-// Call routing init after app is ready
+// Call routing init after app is ready (but only called from login now)
 window._clarityPostInit = function() {
-  window._initRouting();
+  // Routing init is now deferred to login success - this callback is not used for routing anymore
 };
 
 // Attach to app initialization
@@ -4901,51 +4908,13 @@ document.addEventListener('DOMContentLoaded', function() {
 </script>
 
 <script>
-// Initialize real-time sync after app is fully ready
-window._initRealtimeSync = function() {
-  window._syncRetries = (window._syncRetries || 0) + 1;
-  
-  if (!window.app || !(window.app instanceof ClarityApp)) {
-    if (window._syncRetries < 20) {
-      setTimeout(window._initRealtimeSync, 100);
-    } else {
-      console.error("❌ Failed to initialize real-time sync after 20 retries");
-    }
-    return;
-  }
-  
-  try {
-    window.app.initRealtimeSync();
-    console.log('✔ Real-time sync initialized');
-    window._syncRetries = 0; // Reset on success
-  } catch(e) {
-    console.error('Failed to init real-time sync:', e);
-  }
+// Real-time sync is now called directly from login() success callback - don't initialize at page load
 
-  // The "Background Sinker" - stops data usage when tab is hidden
-  document.addEventListener("visibilitychange", () => {
-      if (document.hidden) {
-          // Stop the listener to save data
-          if (window.app && window.app.syncUnsubscribe) {
-              window.app.syncUnsubscribe();
-              window.app.syncUnsubscribe = null;
-              console.log("Sync paused (Tab Hidden)");
-          }
-      } else {
-          // Restart the listener when the user returns
-          if (window.app) {
-              window.app.initRealtimeSync();
-              console.log("Sync resumed (Tab Active)");
-          }
-      }
-  });
-};
-
-// Call after page loads
-window.addEventListener('load', window._initRealtimeSync);
-if (document.readyState === 'complete') {
-  window._initRealtimeSync();
-}
+// Real-time sync is now called directly from login() success callback - don't initialize at page load
+// window.addEventListener('load', window._initRealtimeSync);  // REMOVED - only call after login
+// if (document.readyState === 'complete') {
+//   window._initRealtimeSync();  // REMOVED - only call after login
+// }
 </script>
 <!-- Floating action buttons for Red Tag Tracker -->
 <div id="floating-rt-actions" class="floating-rt hidden" role="region" aria-label="Quick actions for Red Tag Tracker">
