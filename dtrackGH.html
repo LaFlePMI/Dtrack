@@ -680,13 +680,13 @@ body {
 
 <!-- ADD NC MODAL -->
 <div id="add-nc-modal" class="modal">
-    <div class="modal-content" style="width: 95vw; max-width: 95vw;">
+    <div class="modal-content" style="width: 75vw; max-width: 75vw;">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
             <h2 style="color:var(--accent);">Add New Non-Conforming (NC) Tag</h2>
             <button onclick="app.defectTracker.closeAddModal()" class="btn">Close</button>
         </div>
         <form id="new-nc-form" class="space-y-4">
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-6">
                 <div>
                     <label class="block text-sm font-medium" style="color:var(--text-main);">NC# (e.g., NC-00005) <span style="color:#ef4444;">*</span></label>
                     <input type="text" name="nc" required class="nexus-input">
@@ -761,13 +761,13 @@ body {
 
 <!-- EDIT NC MODAL -->
 <div id="edit-nc-modal" class="modal">
-    <div class="modal-content" style="width: 95vw; max-width: 95vw;">
+    <div class="modal-content" style="width: 75vw; max-width: 75vw;">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
             <h2 style="color:var(--accent);">Edit Non-Conforming (NC) Tag</h2>
             <button onclick="app.defectTracker.closeEditModal()" class="btn">Close</button>
         </div>
         <form id="edit-nc-form" class="space-y-4">
-          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-6">
                 <div>
                     <label class="block text-sm font-medium" style="color:var(--text-main);">NC# <span style="color:#ef4444;">*</span></label>
                     <input type="text" name="nc" required class="nexus-input">
@@ -857,7 +857,7 @@ body {
 
 <!-- PASTE DATA MODAL -->
 <div id="paste-modal" class="modal">
-    <div class="modal-content" style="width: 95vw; max-width: 95vw;">
+    <div class="modal-content" style="width: 75vw; max-width: 75vw;">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
             <h2 id="paste-modal-title" style="color:var(--accent);">Paste Spreadsheet Data (TSV)</h2>
             <button onclick="app.defectTracker.closePasteModal()" class="btn">Close</button>
@@ -1051,7 +1051,7 @@ body {
 
 <!-- REPORTS MODAL -->
 <div id="reports-modal" class="modal">
-    <div class="modal-content" style="width: 95vw; max-width: 95vw;">
+    <div class="modal-content" style="width: 75vw; max-width: 75vw;">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
             <h2 style="color:var(--accent);">Red Tag Reports</h2>
             <button onclick="app.defectTracker.closeReportsModal()" class="btn">Close</button>
@@ -4377,6 +4377,7 @@ document.addEventListener("visibilitychange", () => {
 </script>
 </body>
 </html>
+
 
 
 
