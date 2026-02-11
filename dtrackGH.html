@@ -686,7 +686,7 @@ body {
             <button onclick="app.defectTracker.closeAddModal()" class="btn">Close</button>
         </div>
         <form id="new-nc-form" class="space-y-4">
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                 <div>
                     <label class="block text-sm font-medium" style="color:var(--text-main);">NC# (e.g., NC-00005) <span style="color:#ef4444;">*</span></label>
                     <input type="text" name="nc" required class="nexus-input">
@@ -767,7 +767,7 @@ body {
             <button onclick="app.defectTracker.closeEditModal()" class="btn">Close</button>
         </div>
         <form id="edit-nc-form" class="space-y-4">
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                 <div>
                     <label class="block text-sm font-medium" style="color:var(--text-main);">NC# <span style="color:#ef4444;">*</span></label>
                     <input type="text" name="nc" required class="nexus-input">
@@ -4377,6 +4377,7 @@ document.addEventListener("visibilitychange", () => {
 </script>
 </body>
 </html>
+
 
 
 
