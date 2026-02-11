@@ -4287,6 +4287,18 @@ if (typeof ClarityApp.prototype.updateTask !== 'function') {
     this.showToast?.('Task updated');
   };
   console.log('✔ updateTask patch applied');
+
+// Provide a global helper so inline `onchange="handleUpdateTask(...)"` calls work
+window.handleUpdateTask = function(id, changes) {
+  try {
+    if (!window.app || typeof window.app.updateTask !== 'function') return;
+    // Ensure we pass an object (some calls may pass non-objects)
+    const payload = (changes && typeof changes === 'object') ? changes : {};
+    window.app.updateTask(id, payload);
+  } catch (e) {
+    console.error('handleUpdateTask error', e);
+  }
+};
 }
 
 // 3. UI Setup (Buttons and Visibility)
