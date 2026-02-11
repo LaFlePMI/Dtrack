@@ -4266,146 +4266,69 @@ class DefectTracker {
   };
 }
 </script>
-<script>
-var app;
-document.addEventListener('DOMContentLoaded', () => {
-  app = new ClarityApp();
-  window.app = app;
-
-  // Enable login button safely
-  try {
-    const lb = document.getElementById('login-btn');
-    if (lb) lb.disabled = false;
-  } catch(e){}
-
-  // Verify Firebase libs loaded correctly (optional but fine)
-  setTimeout(() => {
-    const errEl = document.getElementById('login-error');
-    if (!window.firebase || !firebase.initializeApp || !firebase.auth) {
-      const msg = 'Firebase libraries failed to load. Check network/CDN or use local SDK. See console.';
-      console.error(msg);
-      if (errEl) errEl.textContent = msg;
-      try { const lb = document.getElementById('login-btn'); if (lb) lb.disabled = true; } catch(e){}
-    } else {
-      if (errEl && errEl.textContent === 'Loading...') errEl.textContent = '';
-    }
-  }, 250);
-});
-</script>
-
 
 <script>
-// ClarityApp instance is created in DOMContentLoaded event below.
-// This script applies fixes/patches after the class is fully defined.
+/** * MAIN INITIALIZATION & PATCHES
+ * We do this in one block to ensure things happen in the right order.
+ */
 
-// If this build doesn't have updateTask, define it now (permanent fix you wanted)
-if (typeof ClarityApp?.prototype?.updateTask !== 'function') {
+// 1. Create the app instance immediately so it exists for the patches
+window.app = new ClarityApp();
+
+// 2. Apply patches to the class prototype immediately
+if (typeof ClarityApp.prototype.updateTask !== 'function') {
   ClarityApp.prototype.updateTask = function (id, changes) {
-    this.historyManager.push();
+    if (this.historyManager?.push) this.historyManager.push();
     const task = this.state.tasks.find(t => t.id === id);
-    if (!task) { console.warn('Task not found for update:', id); return; }
+    if (!task) return;
     Object.assign(task, changes);
-    this.saveState();     // debounced in your newer version, otherwise fine
-    this.renderBoard();
-    this.showToast('Task updated');
+    this.saveState?.();
+    this.renderBoard?.();
+    this.showToast?.('Task updated');
   };
-  console.log('✔ updateTask was missing — FIXED');
+  console.log('✔ updateTask patch applied');
 }
 
-// Optional: guard against later overwrites of window.app
-try { Object.defineProperty(window, 'app', { writable: false, configurable: false }); } catch {}
+// 3. UI Setup (Buttons and Visibility)
+document.addEventListener('DOMContentLoaded', () => {
+  const lb = document.getElementById('login-btn');
+  if (lb) lb.disabled = false;
 
-// Diagnostic: check in Console after reload
-console.log('[clarity check]', window.app?.constructor?.name, 'updateTask =', typeof window.app?.updateTask);
-
-// Wire floating buttons: visibility + click handlers
-(function(){
+  // Floating Action Buttons Logic
   const container = document.getElementById('floating-rt-actions');
   const btnNew = document.getElementById('floating-new-nc');
   const btnReports = document.getElementById('floating-view-reports');
 
-  function updateVisibility(){
-    // Show only when defect tracker mode is active
-    try {
-      if (window.app && window.app.state && window.app.state.mode === 'defects') {
-        container.classList.remove('hidden');
-        container.setAttribute('aria-hidden','false');
-      } else {
-        container.classList.add('hidden');
-        container.setAttribute('aria-hidden','true');
-      }
-    } catch(e) { /* safe-fail */ }
-  }
+  const updateUI = () => {
+    const isDefects = window.app?.state?.mode === 'defects';
+    if (container) container.classList.toggle('hidden', !isDefects);
+  };
 
-  // Click handlers
-  if (btnNew) btnNew.onclick = () => { try { window.app.defectTracker.prepareAddNC(); } catch(e){console.error(e);} };
-  if (btnReports) btnReports.onclick = () => { try { window.app.defectTracker.openReportsModal(); } catch(e){console.error(e);} };
+  if (btnNew) btnNew.onclick = () => window.app?.defectTracker?.prepareAddNC();
+  if (btnReports) btnReports.onclick = () => window.app?.defectTracker?.openReportsModal();
 
-  // Polling fallback: update visibility periodically and on toggle
-  updateVisibility();
-  const iv = setInterval(updateVisibility, 700);
-  // Also update when app.toggleMode exists (wrap it if present)
-  if (window.app && typeof window.app.toggleMode === 'function') {
-    const orig = window.app.toggleMode.bind(window.app);
-    window.app.toggleMode = function(mode){
-      const res = orig(mode);
-      setTimeout(updateVisibility, 60);
-      return res;
-    };
-  }
-  // Cleanup when page unloads
-  window.addEventListener('beforeunload', ()=> clearInterval(iv));
-})();
-</script>
-   
-<script>
-/* Global helper that always works, even if app.updateTask is missing */
-window.handleUpdateTask = function(id, changes) {
-  try {
-    if (!window.app || !window.app.state || !Array.isArray(window.app.state.tasks)) {
-      console.warn('App not ready yet'); 
-      return;
-    }
-    // record history if available
-    if (window.app.historyManager?.push) window.app.historyManager.push();
+  setInterval(updateUI, 1000);
+});
 
-    // apply the change to the task
-    const t = window.app.state.tasks.find(x => x.id === id);
-    if (!t) { console.warn('Task not found:', id); return; }
-    Object.assign(t, changes);
-
-    // save + re-render (if those functions exist)
-    window.app.saveState?.();
-    window.app.renderBoard?.();
-    window.app.showToast?.('Task updated');
-  } catch (e) {
-    console.error('handleUpdateTask failed:', e);
-  }
-};
-</script>
-<script> 
-// Initialize the sync for the first time
-
-// The "Background Sinker" - stops data usage when tab is hidden
+// 4. Background Sync Logic (The "Sinker")
 document.addEventListener("visibilitychange", () => {
     if (document.hidden) {
-        // Stop the listener to save data
-        if (app && app.syncUnsubscribe) {
-            app.syncUnsubscribe();
-            app.syncUnsubscribe = null;
-            console.log("Sync paused (Tab Hidden)");
+        if (window.app?.syncUnsubscribe) {
+            window.app.syncUnsubscribe();
+            window.app.syncUnsubscribe = null;
+            console.log("Sync paused");
         }
     } else {
-        // Restart the listener when the user returns
-        if (app) {
-            app.initRealtimeSync();
-            console.log("Sync resumed (Tab Active)");
+        if (window.app?.initialized) {
+            window.app.initRealtimeSync();
+            console.log("Sync resumed");
         }
     }
 });
 </script>
 </body>
 </html>
+
 
 
 
