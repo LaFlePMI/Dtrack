@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>CLARITY // 1.0</title>
+<script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
@@ -469,200 +470,6 @@ body {
   .floating-btn { width: 48px; height: 48px; font-size: 16px; }
 }
 
-/* =========================================
-   ROUTING VIEW STYLES (THEMED)
-   ========================================= */
-#routing-view {
-  background: var(--bg-main);
-  color: var(--text-main);
-  padding-bottom: 100px;
-  overflow-x: hidden;
-  min-width: 100%;
-  display: none;
-}
-
-.routing-toolbar {
-  background: var(--bg-panel);
-  border-bottom: 1px solid var(--border);
-  padding: 15px 20px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.3);
-}
-
-.routing-toolbar h2 {
-  color: var(--accent);
-  margin: 0;
-  font-size: 1.3rem;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-}
-
-.routing-toolbar-left {
-  display: flex;
-  align-items: center;
-  gap: 20px;
-}
-
-.routing-toolbar-right {
-  display: flex;
-  gap: 15px;
-  flex-wrap: wrap;
-  align-items: center;
-}
-
-.routing-container {
-  display: flex;
-  height: calc(100vh - 60px);
-}
-
-.routing-sidebar {
-  width: 300px;
-  background: var(--bg-panel);
-  border-right: 1px solid var(--border);
-  overflow-y: auto;
-  display: flex;
-  flex-direction: column;
-}
-
-.routing-sidebar-header {
-  padding: 20px;
-  border-bottom: 1px solid var(--border);
-  font-weight: 700;
-  color: var(--text-main);
-  font-size: 0.95rem;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-}
-
-.routing-sidebar-content {
-  flex-grow: 1;
-  overflow-y: auto;
-}
-
-.routing-sidebar-footer {
-  padding: 15px;
-  border-top: 1px solid var(--border);
-}
-
-.routing-main {
-  flex-grow: 1;
-  overflow: auto;
-  padding: 25px;
-  background: var(--bg-main);
-}
-
-.routing-bin-panel {
-  width: 320px;
-  background: var(--bg-panel);
-  border-left: 1px solid var(--border);
-  overflow-y: auto;
-  display: flex;
-  flex-direction: column;
-}
-
-.routing-bin-header {
-  padding: 15px;
-  border-bottom: 1px solid var(--border);
-  font-weight: 700;
-  color: var(--text-main);
-  font-size: 0.95rem;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-}
-
-.routing-bin-content {
-  flex-grow: 1;
-  overflow-y: auto;
-  padding: 10px;
-}
-
-.routing-table-head {
-  background: var(--bg-panel);
-  border-bottom: 1px solid var(--border);
-  font-weight: 700;
-  text-transform: uppercase;
-  font-size: 0.8rem;
-  letter-spacing: 0.5px;
-  color: var(--text-main);
-}
-
-.routing-table-head th {
-  padding: 12px;
-  color: var(--accent);
-  border-right: 1px solid var(--border);
-}
-
-.routing-table-body {
-  background: var(--bg-main);
-}
-
-.routing-table-row {
-  background: var(--bg-card);
-  border-bottom: 1px solid var(--border);
-  transition: all 0.2s;
-}
-
-.routing-table-row:hover {
-  background: var(--bg-panel);
-  box-shadow: 0 5px 15px rgba(0,0,0,0.3);
-  transform: translateY(-1px);
-}
-
-.routing-table-cell {
-  padding: 12px;
-  border-right: 1px solid var(--border);
-  color: var(--text-main);
-}
-
-.routing-modal {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.9);
-  z-index: 3000;
-  display: none;
-  align-items: center;
-  justify-content: center;
-}
-
-.routing-modal.visible {
-  display: flex;
-}
-
-.routing-modal-content {
-  background: var(--bg-panel);
-  border: 1px solid var(--border);
-  padding: 20px;
-  border-radius: 8px;
-  width: 80%;
-  max-width: 600px;
-  max-height: 90vh;
-  overflow-y: auto;
-  box-shadow: 0 0 50px rgba(0, 0, 0, 0.4);
-  color: var(--text-main);
-}
-
-.routing-modal-content h2 {
-  color: var(--accent);
-  margin-top: 0;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-}
-
-.routing-badge {
-  background: var(--border);
-  color: var(--accent);
-  padding: 4px 12px;
-  border-radius: 6px;
-  font-size: 0.75rem;
-  font-weight: 700;
-  white-space: nowrap;
-}
-
 </style>
 </head>
 <body>
@@ -767,139 +574,57 @@ body {
   </footer>
 </div>
 <div id="toast"></div>
-<!-- Add this after the #defect-tracker-view div -->
-<div id="routing-view" style="display: none; height: 100vh; overflow: hidden;">
-    <!-- Routing Toolbar (adapted to dtrack's HUD style) -->
-    <div class="routing-toolbar">
-        <div class="routing-toolbar-left">
-            <h2>Routing Tool</h2>
-            <input type="text" id="activeTitle" class="nexus-input" onchange="app.routing.syncName(this.value)" placeholder="Select a BOM to begin..." style="margin-left: 20px; width: 300px;">
-        </div>
-        <div class="routing-toolbar-right">
-            <div class="routing-badge">Sub-Assy Time: <b id="branchTotal">0.00m</b></div>
-            <div class="routing-badge">Total Product Labor: <b id="grandTotal">0.00m</b></div>
-            <button class="btn" onclick="document.getElementById('jsonIn').click()">Import JSON</button>
-            <button class="btn" onclick="app.routing.exportData()">Export JSON</button>
-        </div>
-    </div>
 
-    <!-- Main Routing Content -->
-    <div class="routing-container">
-        <!-- Sidebar (Projects) -->
-        <div id="projectSidebar" class="routing-sidebar">
-            <div class="routing-sidebar-header">BOM PROJECTS</div>
-            <div id="projectList" class="routing-sidebar-content"></div>
-            <div class="routing-sidebar-footer">
-                <button class="btn btn-primary" style="width: 100%;" onclick="document.getElementById('csvIn').click()">+ IMPORT NEW BOM</button>
-            </div>
-        </div>
-
-        <!-- Main Table View -->
-        <div class="routing-main">
-            <table class="defect-table" style="width: 100%;"> <!-- Reuse dtrack's table class for styling -->
-                <thead class="routing-table-head">
-                    <tr>
-                        <th width="40">LVL</th>
-                        <th width="35%">ASSEMBLY / PART</th>
-                        <th>ROUTING OPERATIONS</th>
-                        <th width="120">ROLL-UP</th>
-                    </tr>
-                </thead>
-                <tbody id="routingBody" class="routing-table-body"></tbody>
-            </table>
-        </div>
-
-        <!-- Right Panel (Hardware Bin) -->
-        <div id="binPanel" class="routing-bin-panel">
-            <div class="routing-bin-header">HARDWARE BIN</div>
-            <div style="padding: 10px;">
-                <input type="text" id="binSearch" class="nexus-input" placeholder="Search numeric parts..." oninput="app.routing.renderBin()">
-            </div>
-            <div id="binList" class="routing-bin-content"></div>
-        </div>
-    </div>
-
-    <!-- File Inputs (for CSV/JSON import) -->
-    <input type="file" id="csvIn" style="display:none" accept=".csv">
-    <input type="file" id="jsonIn" style="display:none" accept=".json">
-
-    <!-- Time Study Modal (adapted to dtrack's modal styling) -->
-    <div id="time-study-modal" class="routing-modal">
-        <div class="routing-modal-content">
-            <h2>Time Studies</h2>
-            <div id="time-study-content"></div>
-            <button class="btn" onclick="app.routing.closeTimeStudyModal()">Close</button>
-        </div>
-    </div>
-
-    <!-- Edit Panel Modal -->
-    <div id="edit-panel-modal" class="routing-modal">
-        <div class="routing-modal-content">
-            <h2>Edit Operations - Settings</h2>
-            <!-- ... (copy the rest from routing HTML) -->
-        </div>
-    </div>
-
-    <!-- BOM Settings Modal -->
-    <div id="bom-settings-modal" class="routing-modal">
-        <div class="routing-modal-content">
-            <h2>BOM Settings</h2>
-            <!-- ... (copy the rest from routing HTML) -->
-        </div>
-    </div>
-</div>
   <!-- HUD SETTINGS MODAL -->
- <div id="hud-settings-modal" class="modal">
-  <div class="modal-content" style="max-width:720px;">
-    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-      <h2 style="color:var(--accent); margin:0;">Settings</h2>
-      <button class="btn" onclick="document.getElementById('hud-settings-modal').classList.remove('visible')">Close</button>
-    </div>
-    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px;">
-      <div style="background:var(--bg-panel); padding:12px; border:1px solid var(--border); border-radius:6px;">
-        <h3 style="margin:0 0 8px 0; color:var(--text-main); font-size:0.95rem;">Board Controls</h3>
-        <div style="display:flex; flex-direction:column; gap:8px;">
-          <button class="btn" onclick="app.autoScrollManager.toggle()">🔄 Toggle Auto-Scroll</button>
-          <button class="btn" onclick="app.addPersonPrompt()">+ Column</button>
-          <button class="btn" onclick="app.addBlankCell()">+ Blank Slot</button>
-          <button class="btn" onclick="app.showArchiveModal()">🗃️ Archive</button>
-          <button class="btn" onclick="app.showTrashModal()">🗑️ Trash</button>
-        </div>
+  <div id="hud-settings-modal" class="modal">
+    <div class="modal-content" style="max-width:720px;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+        <h2 style="color:var(--accent); margin:0;">Settings</h2>
+        <button class="btn" onclick="document.getElementById('hud-settings-modal').classList.remove('visible')">Close</button>
       </div>
-      <div style="background:var(--bg-panel); padding:12px; border:1px solid var(--border); border-radius:6px;">
-        <h3 style="margin:0 0 8px 0; color:var(--text-main); font-size:0.95rem;">Red Tag Controls</h3>
-        <div style="display:flex; flex-direction:column; gap:8px;">
-          <button id="settings-mode-btn" class="btn" onclick="app.toggleMode(app.state.mode === 'kanban' ? 'defects' : 'kanban')">
-            Toggle Mode (Kanban / Defects)
-          </button>
-          <button class="btn" onclick="app.toggleMode('routing')">
-            Switch to Routing Mode
-          </button>
-          <button class="btn" onclick="app.defectTracker.openPasteModal()">📝 Paste Data 📝</button>
-          <button class="btn" onclick="app.defectTracker.openManagePartsModal()">🔩 Manage Parts 🔩</button>
-          <button class="btn" onclick="app.defectTracker.openManageInspectorsModal()">👀 Manage Inspectors 👀</button>
+      <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px;">
+        <div style="background:var(--bg-panel); padding:12px; border:1px solid var(--border); border-radius:6px;">
+          <h3 style="margin:0 0 8px 0; color:var(--text-main); font-size:0.95rem;">Board Controls</h3>
+          <div style="display:flex; flex-direction:column; gap:8px;">
+            <button class="btn" onclick="app.autoScrollManager.toggle()">🔄 Toggle Auto-Scroll</button>
+            <button class="btn" onclick="app.addPersonPrompt()">+ Column</button>
+            <button class="btn" onclick="app.addBlankCell()">+ Blank Slot</button>
+            <button class="btn" onclick="app.showArchiveModal()">🗃️ Archive</button>
+            <button class="btn" onclick="app.showTrashModal()">🗑️ Trash</button>
+          </div>
         </div>
-      </div>
-      <div style="grid-column: 1 / -1; background:var(--bg-panel); padding:12px; border:1px solid var(--border); border-radius:6px;">
-        <h3 style="margin:0 0 8px 0; color:var(--text-main); font-size:0.95rem;">Work Order Management</h3>
-        <div style="display:flex; gap:8px; flex-wrap:wrap;">
-          <button class="btn btn-primary" onclick="document.getElementById('workorder-upload-file').click()">📁 Upload Excel Workbook</button>
-          <button class="btn" onclick="app.workOrderManager.openManageModal()">🔧 Manage Work Orders</button>
-          <input type="file" id="workorder-upload-file" style="display:none" accept=".xls,.xlsx,.xlsm" onchange="app.workOrderManager.handleFileUpload(this)">
+
+        <div style="background:var(--bg-panel); padding:12px; border:1px solid var(--border); border-radius:6px;">
+          <h3 style="margin:0 0 8px 0; color:var(--text-main); font-size:0.95rem;">Red Tag Controls</h3>
+          <div style="display:flex; flex-direction:column; gap:8px;">
+            <button id="settings-mode-btn" class="btn" onclick="app.toggleMode(app.state.mode === 'kanban' ? 'defects' : 'kanban')">Toggle Mode</button>
+            <button class="btn" onclick="app.defectTracker.openPasteModal()">📝Paste Data📝</button>
+            <button class="btn" onclick="app.defectTracker.openManagePartsModal()">🔩Manage Parts🔩</button>
+            <button class="btn" onclick="app.defectTracker.openManageInspectorsModal()">👀Manage Inspectors👀</button>
+          </div>
         </div>
-      </div>
-      <div style="grid-column: 1 / -1; background:var(--bg-panel); padding:12px; border:1px solid var(--border); border-radius:6px;">
-        <h3 style="margin:0 0 8px 0; color:var(--text-main); font-size:0.95rem;">Data & Utilities</h3>
-        <div style="display:flex; gap:8px; flex-wrap:wrap;">
-          <button class="btn btn-primary" onclick="app.ioManager.export()">⬇️ Export</button>
-          <button class="btn" onclick="document.getElementById('import-file').click()">⬆️ Import</button>
-          <input type="file" id="import-file" style="display:none" accept=".json" onchange="app.ioManager.import(this)">
-          <button class="btn" onclick="app.historyManager.undo()">Undo</button>
+
+        <div style="grid-column: 1 / -1; background:var(--bg-panel); padding:12px; border:1px solid var(--border); border-radius:6px;">
+          <h3 style="margin:0 0 8px 0; color:var(--text-main); font-size:0.95rem;">Work Order Management</h3>
+          <div style="display:flex; gap:8px; flex-wrap:wrap;">
+            <button class="btn btn-primary" onclick="document.getElementById('workorder-upload-file').click()">📁 Upload Excel Workbook</button>
+            <button class="btn" onclick="app.workOrderManager.openManageModal()">🔧 Manage Work Orders</button>
+            <input type="file" id="workorder-upload-file" style="display:none" accept=".xls,.xlsx,.xlsm" onchange="app.workOrderManager.handleFileUpload(this)">
+          </div>
+        </div>
+
+        <div style="grid-column: 1 / -1; background:var(--bg-panel); padding:12px; border:1px solid var(--border); border-radius:6px;">
+          <h3 style="margin:0 0 8px 0; color:var(--text-main); font-size:0.95rem;">Data & Utilities</h3>
+          <div style="display:flex; gap:8px; flex-wrap:wrap;">
+            <button class="btn btn-primary" onclick="app.ioManager.export()">⬇️ Export</button>
+            <button class="btn" onclick="document.getElementById('import-file').click()">⬆️ Import</button>
+            <input type="file" id="import-file" style="display:none" accept=".json" onchange="app.ioManager.import(this)">
+            <button class="btn" onclick="app.historyManager.undo()">Undo</button>
+          </div>
         </div>
       </div>
     </div>
   </div>
-</div>
 
 <!-- WORK ORDER MANAGEMENT MODAL -->
 <div id="workorder-manage-modal" class="modal">
@@ -1491,14 +1216,8 @@ login() {
             const overlay = document.getElementById('login-overlay');
             if (overlay) overlay.style.display = 'none';
             
-            // Now start the live data sync and routing (Step C)
-            this.initRealtimeSync();
-            
-            // Initialize routing system after successful login
-            if (window._initRouting) {
-              window._initRouting();
-            }
-            
+            // Now start the live data sync (Step C)
+            this.initRealtimeSync(); 
             this.showToast("Access Granted", "success");
         })
         .catch(error => {
@@ -1595,42 +1314,23 @@ login() {
     this.state.mode = mode;
     const board = document.getElementById('board-canvas');
     const defects = document.getElementById('defect-tracker-view');
-    const routing = document.getElementById('routing-view');
     const searchInput = document.getElementById('search-input');
     const kanbanOnly = document.querySelectorAll('.kanban-only');
     const redTagOnly = document.querySelectorAll('.red-tag-only');
 
-    // Hide all views first
-    if (board) board.style.display = 'none';
-    if (defects) defects.style.display = 'none';
-    if (routing) routing.style.display = 'none';
-
     if (mode === 'defects') {
-      if (defects) defects.style.display = 'block';
-      if (searchInput) {
-        searchInput.placeholder = "Filter red tags...";
-        searchInput.oninput = (e) => this.defectTracker.handleSearch(e.target.value);
-      }
+      board.style.display = 'none';
+      defects.style.display = 'block';
+      searchInput.placeholder = "Filter red tags...";
+      searchInput.oninput = (e) => this.defectTracker.handleSearch(e.target.value);
       kanbanOnly.forEach(el => el.style.display = 'none');
       redTagOnly.forEach(el => el.style.display = 'inline-block');
       this.defectTracker.render();
-    } else if (mode === 'routing') {
-      if (routing) routing.style.display = 'block';
-      if (searchInput) {
-        searchInput.placeholder = "Search routing...";
-        searchInput.oninput = (e) => { /* routing search handler */ };
-      }
-      kanbanOnly.forEach(el => el.style.display = 'none');
-      redTagOnly.forEach(el => el.style.display = 'none');
-      if (this.routing && typeof this.routing.renderTable === 'function') {
-        this.routing.renderTable();
-      }
     } else {
-      if (board) board.style.display = 'grid';
-      if (searchInput) {
-        searchInput.placeholder = "Filter tasks...";
-        searchInput.oninput = (e) => this.handleSearch(e.target.value);
-      }
+      board.style.display = 'grid';
+      defects.style.display = 'none';
+      searchInput.placeholder = "Filter tasks...";
+      searchInput.oninput = (e) => this.handleSearch(e.target.value);
       kanbanOnly.forEach(el => el.style.display = 'inline-block');
       redTagOnly.forEach(el => el.style.display = 'none');
       this.renderBoard();
@@ -4567,6 +4267,98 @@ class DefectTracker {
 }
 </script>
 <script>
+var app;
+document.addEventListener('DOMContentLoaded', () => {
+  app = new ClarityApp();
+  window.app = app;
+
+  // Enable login button safely
+  try {
+    const lb = document.getElementById('login-btn');
+    if (lb) lb.disabled = false;
+  } catch(e){}
+
+  // Verify Firebase libs loaded correctly (optional but fine)
+  setTimeout(() => {
+    const errEl = document.getElementById('login-error');
+    if (!window.firebase || !firebase.initializeApp || !firebase.auth) {
+      const msg = 'Firebase libraries failed to load. Check network/CDN or use local SDK. See console.';
+      console.error(msg);
+      if (errEl) errEl.textContent = msg;
+      try { const lb = document.getElementById('login-btn'); if (lb) lb.disabled = true; } catch(e){}
+    } else {
+      if (errEl && errEl.textContent === 'Loading...') errEl.textContent = '';
+    }
+  }, 250);
+});
+</script>
+
+
+<script>
+// ClarityApp instance is created in DOMContentLoaded event below.
+// This script applies fixes/patches after the class is fully defined.
+
+// If this build doesn't have updateTask, define it now (permanent fix you wanted)
+if (typeof ClarityApp?.prototype?.updateTask !== 'function') {
+  ClarityApp.prototype.updateTask = function (id, changes) {
+    this.historyManager.push();
+    const task = this.state.tasks.find(t => t.id === id);
+    if (!task) { console.warn('Task not found for update:', id); return; }
+    Object.assign(task, changes);
+    this.saveState();     // debounced in your newer version, otherwise fine
+    this.renderBoard();
+    this.showToast('Task updated');
+  };
+  console.log('✔ updateTask was missing — FIXED');
+}
+
+// Optional: guard against later overwrites of window.app
+try { Object.defineProperty(window, 'app', { writable: false, configurable: false }); } catch {}
+
+// Diagnostic: check in Console after reload
+console.log('[clarity check]', window.app?.constructor?.name, 'updateTask =', typeof window.app?.updateTask);
+
+// Wire floating buttons: visibility + click handlers
+(function(){
+  const container = document.getElementById('floating-rt-actions');
+  const btnNew = document.getElementById('floating-new-nc');
+  const btnReports = document.getElementById('floating-view-reports');
+
+  function updateVisibility(){
+    // Show only when defect tracker mode is active
+    try {
+      if (window.app && window.app.state && window.app.state.mode === 'defects') {
+        container.classList.remove('hidden');
+        container.setAttribute('aria-hidden','false');
+      } else {
+        container.classList.add('hidden');
+        container.setAttribute('aria-hidden','true');
+      }
+    } catch(e) { /* safe-fail */ }
+  }
+
+  // Click handlers
+  if (btnNew) btnNew.onclick = () => { try { window.app.defectTracker.prepareAddNC(); } catch(e){console.error(e);} };
+  if (btnReports) btnReports.onclick = () => { try { window.app.defectTracker.openReportsModal(); } catch(e){console.error(e);} };
+
+  // Polling fallback: update visibility periodically and on toggle
+  updateVisibility();
+  const iv = setInterval(updateVisibility, 700);
+  // Also update when app.toggleMode exists (wrap it if present)
+  if (window.app && typeof window.app.toggleMode === 'function') {
+    const orig = window.app.toggleMode.bind(window.app);
+    window.app.toggleMode = function(mode){
+      const res = orig(mode);
+      setTimeout(updateVisibility, 60);
+      return res;
+    };
+  }
+  // Cleanup when page unloads
+  window.addEventListener('beforeunload', ()=> clearInterval(iv));
+})();
+</script>
+   
+<script>
 /* Global helper that always works, even if app.updateTask is missing */
 window.handleUpdateTask = function(id, changes) {
   try {
@@ -4591,341 +4383,28 @@ window.handleUpdateTask = function(id, changes) {
   }
 };
 </script>
-<script>
-// Initialize callbacks queue FIRST
-window._clarityInitCallbacks = window._clarityInitCallbacks || [];
+<script> 
+// Initialize the sync for the first time
+app.initRealtimeSync();
 
-// Defer ClarityApp instantiation until all classes are loaded
-window._clarityInit = function() {
-  window._clarityInitRetries = (window._clarityInitRetries || 0) + 1;
-  
-  if (window.app && window.app instanceof ClarityApp) {
-    console.log('ℹ ClarityApp already initialized');
-    return;
-  }
-  
-  try {
-    console.log('[Init] Creating ClarityApp instance... (attempt ' + window._clarityInitRetries + ')');
-    window.app = new ClarityApp();
-    console.log('✔ ClarityApp initialized', window.app);
-    
-    // Call post-init callbacks (routing, real-time sync, etc.)
-    console.log('[Init] Running ' + window._clarityInitCallbacks.length + ' post-init callbacks');
-    if (window._clarityInitCallbacks && Array.isArray(window._clarityInitCallbacks)) {
-      window._clarityInitCallbacks.forEach((cb, idx) => {
-        try {
-          console.log('[Init] Callback ' + idx + ' running...');
-          cb();
-          console.log('[Init] Callback ' + idx + ' done');
-        } catch(e) {
-          console.error('Post-init callback ' + idx + ' failed:', e);
+// The "Background Sinker" - stops data usage when tab is hidden
+document.addEventListener("visibilitychange", () => {
+    if (document.hidden) {
+        // Stop the listener to save data
+        if (app && app.syncUnsubscribe) {
+            app.syncUnsubscribe();
+            app.syncUnsubscribe = null;
+            console.log("Sync paused (Tab Hidden)");
         }
-      });
-    }
-    console.log('[Init] All initialization complete');
-    window._clarityInitRetries = 0; // Reset on success
-  } catch(e) {
-    console.error('Failed to initialize ClarityApp (attempt ' + window._clarityInitRetries + '):', e);
-    console.error(e.stack);
-    if (window._clarityInitRetries < 15) {
-      setTimeout(window._clarityInit, 200);
     } else {
-      console.error('❌ Failed to initialize ClarityApp after 15 retries');
-    }
-  }
-};
-
-// Wait for page to load before initializing
-// Always defer to DOMContentLoaded to ensure all scripts have loaded
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', function() {
-    setTimeout(window._clarityInit, 100); // Small delay to ensure all callbacks are registered
-  });
-} else {
-  // Page already loaded, still defer a bit
-  setTimeout(window._clarityInit, 100);
-}
-
-// If this build doesn't have updateTask, define it now (permanent fix you wanted)
-if (typeof ClarityApp?.prototype?.updateTask !== 'function') {
-  ClarityApp.prototype.updateTask = function (id, changes) {
-    this.historyManager.push();
-    const task = this.state.tasks.find(t => t.id === id);
-    if (!task) { console.warn('Task not found for update:', id); return; }
-    Object.assign(task, changes);
-    this.saveState();     // debounced in your newer version, otherwise fine
-    this.renderBoard();
-    this.showToast('Task updated');
-  };
-  console.log('✔ updateTask was missing — FIXED');
-}
-
-// Optional: guard against later overwrites of window.app
-try { Object.defineProperty(window, 'app', { writable: false, configurable: false }); } catch {}
-
-// Diagnostic: check in Console after reload
-console.log('[clarity check]', window.app?.constructor?.name, 'updateTask =', typeof window.app?.updateTask);
-
-// Wire floating buttons: visibility + click handlers (UPDATED with routing toggle)
-(function(){
-  const container = document.getElementById('floating-rt-actions');
-  const btnNew = document.getElementById('floating-new-nc');
-  const btnReports = document.getElementById('floating-view-reports');
-
-  function updateVisibility(){
-    // Show only when defect tracker mode is active
-    try {
-      if (!container) return; // Safe guard - element might not exist yet
-      if (window.app && window.app.state && window.app.state.mode === 'defects') {
-        container.classList.remove('hidden');
-        container.setAttribute('aria-hidden','false');
-      } else {
-        container.classList.add('hidden');
-        container.setAttribute('aria-hidden','true');
-      }
-    } catch(e) { /* safe-fail */ }
-  }
-
-  // Click handlers
-  if (btnNew) btnNew.onclick = () => { try { window.app.defectTracker.prepareAddNC(); } catch(e){console.error(e);} };
-  if (btnReports) btnReports.onclick = () => { try { window.app.defectTracker.openReportsModal(); } catch(e){console.error(e);} };
-
-  // Polling fallback: update visibility periodically and on toggle
-  updateVisibility();
-  const iv = setInterval(updateVisibility, 700);
-
-  // Also update when app.toggleMode exists (wrap it if present) — UPDATED with routing
-  if (window.app && typeof window.app.toggleMode === 'function') {
-    const orig = window.app.toggleMode.bind(window.app);
-    window.app.toggleMode = function(newMode) {
-      const res = orig(newMode);
-      
-      // Add routing visibility
-      document.getElementById('board-canvas').style.display = newMode === 'kanban' ? 'grid' : 'none';
-      document.getElementById('defect-tracker-view').style.display = newMode === 'defects' ? 'block' : 'none';
-      document.getElementById('routing-view').style.display = newMode === 'routing' ? 'block' : 'none';
-      
-      // Sync state
-      app.state.mode = newMode;
-      app.saveState();
-      
-      // Initial render for routing
-      if (newMode === 'routing' && app.routing) {
-        app.routing.renderTable();
-      }
-      
-      // Existing floating visibility update
-      setTimeout(updateVisibility, 60);
-      
-      return res;
-    };
-  }
-
-  // Cleanup when page unloads
-  window.addEventListener('beforeunload', ()=> clearInterval(iv));
-})();
-</script>
-
-<script>
-// === Routing Integration - Step 3 ===
-// This extends ClarityApp with routing functionality
-
-// Defer routing initialization until app exists
-window._initRouting = function() {
-  window._routingRetries = (window._routingRetries || 0) + 1;
-  
-  if (!window.app) {
-    if (window._routingRetries < 20) {
-      console.warn("app not initialized yet - routing init delayed, retrying... (" + window._routingRetries + "/20)");
-      setTimeout(window._initRouting, 150);
-    } else {
-      console.error("❌ Failed to initialize routing after 20 retries. app not found.");
-    }
-    return;
-  }
-  
-  if (!(window.app instanceof ClarityApp)) {
-    if (window._routingRetries < 20) {
-      console.warn("app is not ClarityApp instance - routing init delayed, retrying... (" + window._routingRetries + "/20)");
-      setTimeout(window._initRouting, 150);
-    } else {
-      console.error("❌ Failed to initialize routing after 20 retries. app is not ClarityApp:", typeof window.app, Object.prototype.toString.call(window.app));
-    }
-    return;
-  }
-  
-  console.log('[Routing] Initializing routing system...');
-  window.app.routing = {
-    hubData: {},
-    activeId: null,
-    history: [],
-
-    // Simple history for undo (can expand later)
-    pushHistory: function() {
-      try {
-        this.history.push(JSON.stringify(this.hubData));
-        if (this.history.length > 50) this.history.shift();
-      } catch (e) { console.error('Routing history push failed', e); }
-    },
-
-    // Undo last change (basic)
-    undo: function() {
-      if (this.history.length === 0) {
-        app.showToast('Nothing to undo in Routing', 'warning');
-        return;
-      }
-      try {
-        this.hubData = JSON.parse(this.history.pop());
-        app.state.routingHub = this.hubData;
-        app.saveState();
-        this.renderTable();
-        app.showToast('Routing changes undone');
-      } catch (e) {
-        console.error('Routing undo failed', e);
-        app.showToast('Undo failed', 'error');
-      }
-    },
-
-    // Save routing data → syncs to Firestore via app.state
-    save: function() {
-      app.state.routingHub = this.hubData;
-      app.saveState();  // This triggers Firestore write
-      this.renderTable(); // Optional: refresh immediately
-    },
-
-    // Placeholder - will expand with full render logic later
-    renderTable: function() {
-      const tbody = document.getElementById('routingBody');
-      if (!tbody) return;
-      tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; padding:40px;">Routing view loading... (implement full render here)</td></tr>';
-      // TODO: full table rendering logic goes here (from routing tool)
-    },
-
-    // Sync name of active BOM
-    syncName: function(newName) {
-      if (!this.activeId) {
-        app.showToast('Please select a BOM first', 'warning');
-        return;
-      }
-      if (this.hubData[this.activeId]) {
-        this.hubData[this.activeId].name = newName;
-        this.save();
-        app.showToast('BOM name updated', 'success');
-      }
-    },
-
-    // Export routing data as JSON
-    exportData: function() {
-      if (!this.hubData || Object.keys(this.hubData).length === 0) {
-        app.showToast('No routing data to export', 'warning');
-        return;
-      }
-      const dataStr = JSON.stringify(this.hubData, null, 2);
-      const blob = new Blob([dataStr], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `routing_bom_${new Date().toISOString().split('T')[0]}.json`;
-      a.click();
-      URL.revokeObjectURL(url);
-      app.showToast('Routing data exported', 'success');
-    },
-
-    // Close time study modal
-    closeTimeStudyModal: function() {
-      const modal = document.getElementById('time-study-modal');
-      if (modal) modal.classList.remove('visible');
-    },
-
-    // Render hardware bin
-    renderBin: function() {
-      const binList = document.getElementById('binList');
-      if (!binList) return;
-      const searchTerm = document.getElementById('binSearch')?.value?.toLowerCase() || '';
-      // TODO: implement bin rendering with search filtering
-      binList.innerHTML = '<div style="padding: 20px; text-align: center; color: var(--text-muted);">Hardware bin implementation pending</div>';
-    },
-
-    // Basic import handler for initial JSON
-    importJson: function(file) {
-      if (!file) return;
-      const reader = new FileReader();
-      reader.onload = (ev) => {
-        try {
-          const parsed = JSON.parse(ev.target.result);
-          this.pushHistory();
-          this.hubData = parsed || { masterRouting: {} };
-          this.buildMasterRouting?.(); // Call if you add this method
-          this.save(); // Immediately sync to Firestore
-          app.showToast('Routing JSON imported & synced to Firestore', 'success');
-          
-          // Try to load first project if available
-          const firstId = Object.keys(this.hubData).find(k => k !== 'masterRouting');
-          if (firstId) {
-            this.activeId = firstId;
-            this.renderTable();
-          }
-        } catch (err) {
-          console.error('JSON import failed', err);
-          app.showToast('Import failed: invalid JSON', 'error');
+        // Restart the listener when the user returns
+        if (app) {
+            app.initRealtimeSync();
+            console.log("Sync resumed (Tab Active)");
         }
-      };
-      reader.readAsText(file);
-    },
-
-    // More methods will be added here later (loadProject, addStep, modStep, timeStudy, etc.)
-  };
-
-  // Load existing routing data from state (if any)
-  app.state.routingHub = app.state.routingHub || { masterRouting: {} };
-  app.routing.hubData = app.state.routingHub;
-
-  console.log('✔ Routing integration initialized successfully');
-  window._routingRetries = 0; // Reset counter on success
-};
-
-// Call routing init after app is ready (but only called from login now)
-window._clarityPostInit = function() {
-  // Routing init is now deferred to login success - this callback is not used for routing anymore
-};
-
-// Attach to app initialization
-window._clarityInitCallbacks = window._clarityInitCallbacks || [];
-window._clarityInitCallbacks.push(window._clarityPostInit);
-
-// Wire the JSON import input (from the routing-view HTML)
-document.addEventListener('DOMContentLoaded', function() {
-  const jsonInput = document.getElementById('jsonIn');
-  if (!jsonInput) return;
-  jsonInput.addEventListener('change', function(e) {
-    if (window.app && window.app.routing) {
-      window.app.routing.importJson(e.target.files[0]);
-    } else {
-      console.warn('app.routing not ready yet');
     }
-  });
 });
 </script>
-
-<script>
-// Real-time sync is now called directly from login() success callback - don't initialize at page load
-
-// Real-time sync is now called directly from login() success callback - don't initialize at page load
-// window.addEventListener('load', window._initRealtimeSync);  // REMOVED - only call after login
-// if (document.readyState === 'complete') {
-//   window._initRealtimeSync();  // REMOVED - only call after login
-// }
-</script>
-<!-- Floating action buttons for Red Tag Tracker -->
-<div id="floating-rt-actions" class="floating-rt hidden" role="region" aria-label="Quick actions for Red Tag Tracker">
-  <button id="floating-new-nc" class="floating-btn btn-primary" title="Add new NC (Red Tag)" aria-label="Add new NC">
-    ➕
-  </button>
-  <button id="floating-view-reports" class="floating-btn btn" title="View Reports" aria-label="View reports">
-    📊
-  </button>
-</div>
-
 </body>
 </html>
 
