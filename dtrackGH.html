@@ -4,7 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>CLARITY // 1.0</title>
-<script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
@@ -1632,8 +1631,6 @@ login() {
     }
     // Auto-close settings modal if open when mode changes
     document.getElementById('hud-settings-modal')?.classList.remove('visible');
-    this.saveState();
-  }
     this.saveState();
   }
 
@@ -4589,9 +4586,31 @@ window.handleUpdateTask = function(id, changes) {
 };
 </script>
 <script>
-// Ensure we have a ClarityApp instance (in case something loaded out of order)
-if (!(window.app instanceof ClarityApp)) {
-  window.app = new ClarityApp();
+// Defer ClarityApp instantiation until all classes are loaded
+window._clarityInit = function() {
+  if (window.app && window.app instanceof ClarityApp) return; // Already initialized
+  
+  try {
+    window.app = new ClarityApp();
+    console.log('✔ ClarityApp initialized');
+    
+    // Call post-init callbacks (routing, real-time sync, etc.)
+    if (window._clarityInitCallbacks && Array.isArray(window._clarityInitCallbacks)) {
+      window._clarityInitCallbacks.forEach(cb => {
+        try { cb(); } catch(e) { console.error('Post-init callback failed:', e); }
+      });
+    }
+  } catch(e) {
+    console.error('Failed to initialize ClarityApp:', e);
+    setTimeout(window._clarityInit, 100); // Retry
+  }
+};
+
+// Wait for page to load before initializing
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', window._clarityInit);
+} else {
+  window._clarityInit();
 }
 
 // If this build doesn't have updateTask, define it now (permanent fix you wanted)
@@ -4678,10 +4697,13 @@ console.log('[clarity check]', window.app?.constructor?.name, 'updateTask =', ty
 // === Routing Integration - Step 3 ===
 // This extends ClarityApp with routing functionality
 
-// Make sure app exists
-if (!window.app) {
-  console.warn("app not initialized yet - routing init delayed");
-} else {
+// Defer routing initialization until app exists
+window._initRouting = function() {
+  if (!window.app || !(window.app instanceof ClarityApp)) {
+    console.warn("app not initialized yet - routing init delayed, retrying...");
+    setTimeout(window._initRouting, 100);
+    return;
+  }
   // Attach routing namespace to app
   app.routing = {
     hubData: {},
@@ -4809,39 +4831,65 @@ if (!window.app) {
   app.routing.hubData = app.state.routingHub;
 
   console.log('Routing integration initialized');
-}
+};
+
+// Call routing init after app is ready
+window._clarityPostInit = function() {
+  window._initRouting();
+};
+
+// Attach to app initialization
+window._clarityInitCallbacks = window._clarityInitCallbacks || [];
+window._clarityInitCallbacks.push(window._clarityPostInit);
 
 // Wire the JSON import input (from the routing-view HTML)
-document.getElementById('jsonIn')?.addEventListener('change', function(e) {
-  if (app && app.routing) {
-    app.routing.importJson(e.target.files[0]);
-  } else {
-    console.warn('app.routing not ready yet');
-  }
+document.addEventListener('DOMContentLoaded', function() {
+  const jsonInput = document.getElementById('jsonIn');
+  if (!jsonInput) return;
+  jsonInput.addEventListener('change', function(e) {
+    if (window.app && window.app.routing) {
+      window.app.routing.importJson(e.target.files[0]);
+    } else {
+      console.warn('app.routing not ready yet');
+    }
+  });
 });
 </script>
 
 <script>
-// Initialize the sync for the first time
-app.initRealtimeSync();
+// Initialize real-time sync after app is fully ready
+window._initRealtimeSync = function() {
+  if (!window.app || !(window.app instanceof ClarityApp)) {
+    setTimeout(window._initRealtimeSync, 100);
+    return;
+  }
+  
+  window.app.initRealtimeSync();
 
-// The "Background Sinker" - stops data usage when tab is hidden
-document.addEventListener("visibilitychange", () => {
-    if (document.hidden) {
-        // Stop the listener to save data
-        if (app && app.syncUnsubscribe) {
-            app.syncUnsubscribe();
-            app.syncUnsubscribe = null;
-            console.log("Sync paused (Tab Hidden)");
-        }
-    } else {
-        // Restart the listener when the user returns
-        if (app) {
-            app.initRealtimeSync();
-            console.log("Sync resumed (Tab Active)");
-        }
-    }
-});
+  // The "Background Sinker" - stops data usage when tab is hidden
+  document.addEventListener("visibilitychange", () => {
+      if (document.hidden) {
+          // Stop the listener to save data
+          if (window.app && window.app.syncUnsubscribe) {
+              window.app.syncUnsubscribe();
+              window.app.syncUnsubscribe = null;
+              console.log("Sync paused (Tab Hidden)");
+          }
+      } else {
+          // Restart the listener when the user returns
+          if (window.app) {
+              window.app.initRealtimeSync();
+              console.log("Sync resumed (Tab Active)");
+          }
+      }
+  });
+};
+
+// Call after page loads
+window.addEventListener('load', window._initRealtimeSync);
+if (document.readyState === 'complete') {
+  window._initRealtimeSync();
+}
 </script>
 <!-- Floating action buttons for Red Tag Tracker -->
 <div id="floating-rt-actions" class="floating-rt hidden" role="region" aria-label="Quick actions for Red Tag Tracker">
