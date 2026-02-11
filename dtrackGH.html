@@ -4586,31 +4586,58 @@ window.handleUpdateTask = function(id, changes) {
 };
 </script>
 <script>
+// Initialize callbacks queue FIRST
+window._clarityInitCallbacks = window._clarityInitCallbacks || [];
+
 // Defer ClarityApp instantiation until all classes are loaded
 window._clarityInit = function() {
-  if (window.app && window.app instanceof ClarityApp) return; // Already initialized
+  window._clarityInitRetries = (window._clarityInitRetries || 0) + 1;
+  
+  if (window.app && window.app instanceof ClarityApp) {
+    console.log('ℹ ClarityApp already initialized');
+    return;
+  }
   
   try {
+    console.log('[Init] Creating ClarityApp instance... (attempt ' + window._clarityInitRetries + ')');
     window.app = new ClarityApp();
-    console.log('✔ ClarityApp initialized');
+    console.log('✔ ClarityApp initialized', window.app);
     
     // Call post-init callbacks (routing, real-time sync, etc.)
+    console.log('[Init] Running ' + window._clarityInitCallbacks.length + ' post-init callbacks');
     if (window._clarityInitCallbacks && Array.isArray(window._clarityInitCallbacks)) {
-      window._clarityInitCallbacks.forEach(cb => {
-        try { cb(); } catch(e) { console.error('Post-init callback failed:', e); }
+      window._clarityInitCallbacks.forEach((cb, idx) => {
+        try {
+          console.log('[Init] Callback ' + idx + ' running...');
+          cb();
+          console.log('[Init] Callback ' + idx + ' done');
+        } catch(e) {
+          console.error('Post-init callback ' + idx + ' failed:', e);
+        }
       });
     }
+    console.log('[Init] All initialization complete');
+    window._clarityInitRetries = 0; // Reset on success
   } catch(e) {
-    console.error('Failed to initialize ClarityApp:', e);
-    setTimeout(window._clarityInit, 100); // Retry
+    console.error('Failed to initialize ClarityApp (attempt ' + window._clarityInitRetries + '):', e);
+    console.error(e.stack);
+    if (window._clarityInitRetries < 15) {
+      setTimeout(window._clarityInit, 200);
+    } else {
+      console.error('❌ Failed to initialize ClarityApp after 15 retries');
+    }
   }
 };
 
 // Wait for page to load before initializing
+// Always defer to DOMContentLoaded to ensure all scripts have loaded
 if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', window._clarityInit);
+  document.addEventListener('DOMContentLoaded', function() {
+    setTimeout(window._clarityInit, 100); // Small delay to ensure all callbacks are registered
+  });
 } else {
-  window._clarityInit();
+  // Page already loaded, still defer a bit
+  setTimeout(window._clarityInit, 100);
 }
 
 // If this build doesn't have updateTask, define it now (permanent fix you wanted)
@@ -4699,13 +4726,29 @@ console.log('[clarity check]', window.app?.constructor?.name, 'updateTask =', ty
 
 // Defer routing initialization until app exists
 window._initRouting = function() {
-  if (!window.app || !(window.app instanceof ClarityApp)) {
-    console.warn("app not initialized yet - routing init delayed, retrying...");
-    setTimeout(window._initRouting, 100);
+  window._routingRetries = (window._routingRetries || 0) + 1;
+  
+  if (!window.app) {
+    if (window._routingRetries < 20) {
+      console.warn("app not initialized yet - routing init delayed, retrying... (" + window._routingRetries + "/20)");
+      setTimeout(window._initRouting, 150);
+    } else {
+      console.error("❌ Failed to initialize routing after 20 retries. app not found.");
+    }
     return;
   }
-  // Attach routing namespace to app
-  app.routing = {
+  
+  if (!(window.app instanceof ClarityApp)) {
+    if (window._routingRetries < 20) {
+      console.warn("app is not ClarityApp instance - routing init delayed, retrying... (" + window._routingRetries + "/20)");
+      setTimeout(window._initRouting, 150);
+    } else {
+      console.error("❌ Failed to initialize routing after 20 retries. app is not ClarityApp:", typeof window.app, Object.prototype.toString.call(window.app));
+    }
+    return;
+  }
+  
+  console.log('[Routing] Initializing routing system...');
     hubData: {},
     activeId: null,
     history: [],
@@ -4830,7 +4873,8 @@ window._initRouting = function() {
   app.state.routingHub = app.state.routingHub || { masterRouting: {} };
   app.routing.hubData = app.state.routingHub;
 
-  console.log('Routing integration initialized');
+  console.log('✔ Routing integration initialized successfully');
+  window._routingRetries = 0; // Reset counter on success
 };
 
 // Call routing init after app is ready
@@ -4859,12 +4903,24 @@ document.addEventListener('DOMContentLoaded', function() {
 <script>
 // Initialize real-time sync after app is fully ready
 window._initRealtimeSync = function() {
+  window._syncRetries = (window._syncRetries || 0) + 1;
+  
   if (!window.app || !(window.app instanceof ClarityApp)) {
-    setTimeout(window._initRealtimeSync, 100);
+    if (window._syncRetries < 20) {
+      setTimeout(window._initRealtimeSync, 100);
+    } else {
+      console.error("❌ Failed to initialize real-time sync after 20 retries");
+    }
     return;
   }
   
-  window.app.initRealtimeSync();
+  try {
+    window.app.initRealtimeSync();
+    console.log('✔ Real-time sync initialized');
+    window._syncRetries = 0; // Reset on success
+  } catch(e) {
+    console.error('Failed to init real-time sync:', e);
+  }
 
   // The "Background Sinker" - stops data usage when tab is hidden
   document.addEventListener("visibilitychange", () => {
