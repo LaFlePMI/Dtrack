@@ -4315,6 +4315,29 @@ window.handleUpdateTask = function(id, field, value) {
 };
 }
 
+// If for any reason the earlier conditional patch block didn't run
+// (e.g. `ClarityApp.prototype.updateTask` already existed), ensure
+// the global helper is still available for inline `onchange` handlers.
+if (typeof window.handleUpdateTask !== 'function') {
+  window.handleUpdateTask = function(id, field, value) {
+    try {
+      if (!window.app || typeof window.app.updateTask !== 'function') {
+        console.warn('App not fully initialized yet.');
+        return;
+      }
+      let payload = {};
+      if (field && typeof field === 'object') {
+        payload = field;
+      } else {
+        payload[field] = value;
+      }
+      window.app.updateTask(id, payload);
+    } catch (e) {
+      console.error('handleUpdateTask error:', e);
+    }
+  };
+}
+
 // 3. UI Setup (Buttons and Visibility)
 document.addEventListener('DOMContentLoaded', () => {
   const lb = document.getElementById('login-btn');
