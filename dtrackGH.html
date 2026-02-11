@@ -689,11 +689,11 @@ body {
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-6">
                 <div>
                     <label class="block text-sm font-medium" style="color:var(--text-main);">NC# (e.g., NC-00005) <span style="color:#ef4444;">*</span></label>
-                    <input type="text" name="nc" required class="nexus-input">
+                    <input type="text" name="nc" required class="nexus-input w-full">
                 </div>
                 <div>
                     <label class="block text-sm font-medium" style="color:var(--text-main);">Status <span style="color:#ef4444;">*</span></label>
-                    <select name="status" required class="nexus-input">
+                    <select name="status" required class="nexus-input w-full">
                         <option value="">Select Status</option>
                         <option value="IN PROCESS">IN PROCESS</option>
                         <option value="REPAIRED/CLOSED">REPAIRED/CLOSED</option>
@@ -702,31 +702,31 @@ body {
                 </div>
                 <div>
                     <label class="block text-sm font-medium" style="color:var(--text-main);">Part Number</label>
-                    <select id="new-partNumber" name="partNumber" class="nexus-input"></select>
+                    <select id="new-partNumber" name="partNumber" class="nexus-input w-full"></select>
                 </div>
                 <div>
                     <label class="block text-sm font-medium" style="color:var(--text-main);">Part Name</label>
-                    <select id="new-partName" name="partName" class="nexus-input"></select>
+                    <select id="new-partName" name="partName" class="nexus-input w-full"></select>
                 </div>
                 <div>
                   <label class="block text-sm font-medium" style="color:var(--text-main);">Family (auto)</label>
-                    <input type="text" name="family" id="new-family" class="nexus-input" readonly>
+                    <input type="text" name="family" id="new-family" class="nexus-input w-full" readonly>
                 </div>
                 <div>
                     <label class="block text-sm font-medium" style="color:var(--text-main);">Serial</label>
-                    <input type="text" name="serial" class="nexus-input">
+                    <input type="text" name="serial" class="nexus-input w-full">
                 </div>
                 <div>
                     <label class="block text-sm font-medium" style="color:var(--text-main);">Quantity</label>
-                    <input type="number" name="qty" value="1" min="1" class="nexus-input">
+                    <input type="number" name="qty" value="1" min="1" class="nexus-input w-full">
                 </div>
                 <div>
                     <label class="block text-sm font-medium" style="color:var(--text-main);">Date Logged</label>
-                    <input type="date" name="dateLogged" class="nexus-input">
+                    <input type="date" name="dateLogged" class="nexus-input w-full">
                 </div>
                 <div>
                     <label class="block text-sm font-medium" style="color:var(--text-main);">Inspector Initials</label>
-                    <select name="inspector" class="nexus-input">
+                    <select name="inspector" class="nexus-input w-full">
                         <option value="">Select Inspector</option>
                         <option value="TLG">TLG</option>
                         <option value="JAB">JAB</option>
@@ -739,15 +739,15 @@ body {
             
             <div>
                 <label class="block text-sm font-medium" style="color:var(--text-main);">Description of Failure</label>
-                <textarea name="description" rows="3" class="nexus-input" style="min-height:80px;"></textarea>
+                <textarea name="description" rows="3" class="nexus-input w-full" style="min-height:80px;"></textarea>
             </div>
             <div>
                 <label class="block text-sm font-medium" style="color:var(--text-main);">Disposition/Solution</label>
-                <textarea name="disposition" rows="3" class="nexus-input" style="min-height:80px;"></textarea>
+                <textarea name="disposition" rows="3" class="nexus-input w-full" style="min-height:80px;"></textarea>
             </div>
             <div>
                 <label class="block text-sm font-medium" style="color:var(--text-main);">Notes</label>
-                <textarea name="notes" rows="3" class="nexus-input" style="min-height:80px;"></textarea>
+                <textarea name="notes" rows="3" class="nexus-input w-full" style="min-height:80px;"></textarea>
             </div>
 
             <div style="padding-top:16px; display:flex; justify-content:flex-end;">
@@ -770,11 +770,11 @@ body {
           <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-6">
                 <div>
                     <label class="block text-sm font-medium" style="color:var(--text-main);">NC# <span style="color:#ef4444;">*</span></label>
-                    <input type="text" name="nc" required class="nexus-input">
+                    <input type="text" name="nc" required class="nexus-input w-full">
                 </div>
                 <div>
                     <label class="block text-sm font-medium" style="color:var(--text-main);">Status <span style="color:#ef4444;">*</span></label>
-                    <select name="status" required class="nexus-input">
+                    <select name="status" required class="nexus-input w-full">
                         <option value="">Select Status</option>
                         <option value="IN PROCESS">IN PROCESS</option>
                         <option value="REPAIRED/CLOSED">REPAIRED/CLOSED</option>
@@ -783,31 +783,31 @@ body {
                 </div>
                 <div>
                     <label class="block text-sm font-medium" style="color:var(--text-main);">Part Number</label>
-                    <select id="edit-partNumber" name="partNumber" class="nexus-input"></select>
+                    <select id="edit-partNumber" name="partNumber" class="nexus-input w-full"></select>
                 </div>
                 <div>
                     <label class="block text-sm font-medium" style="color:var(--text-main);">Part Name</label>
-                    <select id="edit-partName" name="partName" class="nexus-input"></select>
+                    <select id="edit-partName" name="partName" class="nexus-input w-full"></select>
                 </div>
                 <div>
                   <label class="block text-sm font-medium" style="color:var(--text-main);">Family (auto)</label>
-                    <input type="text" name="family" id="edit-family" class="nexus-input" readonly>
+                    <input type="text" name="family" id="edit-family" class="nexus-input w-full" readonly>
                 </div>
                 <div>
                     <label class="block text-sm font-medium" style="color:var(--text-main);">Serial</label>
-                    <input type="text" name="serial" class="nexus-input">
+                    <input type="text" name="serial" class="nexus-input w-full">
                 </div>
                 <div>
                     <label class="block text-sm font-medium" style="color:var(--text-main);">Quantity</label>
-                    <input type="number" name="qty" min="1" class="nexus-input">
+                    <input type="number" name="qty" min="1" class="nexus-input w-full">
                 </div>
                 <div>
                     <label class="block text-sm font-medium" style="color:var(--text-main);">Date Logged</label>
-                    <input type="date" name="dateLogged" class="nexus-input">
+                    <input type="date" name="dateLogged" class="nexus-input w-full">
                 </div>
                 <div>
                     <label class="block text-sm font-medium" style="color:var(--text-main);">Inspector Initials</label>
-                    <select name="inspector" class="nexus-input">
+                    <select name="inspector" class="nexus-input w-full">
                         <option value="">Select Inspector</option>
                         <option value="TLG">TLG</option>
                         <option value="JAB">JAB</option>
@@ -820,15 +820,15 @@ body {
             
             <div>
                 <label class="block text-sm font-medium" style="color:var(--text-main);">Description of Failure</label>
-                <textarea name="description" rows="3" class="nexus-input" style="min-height:80px;"></textarea>
+                <textarea name="description" rows="3" class="nexus-input w-full" style="min-height:80px;"></textarea>
             </div>
             <div>
                 <label class="block text-sm font-medium" style="color:var(--text-main);">Disposition/Solution</label>
-                <textarea name="disposition" rows="3" class="nexus-input" style="min-height:80px;"></textarea>
+                <textarea name="disposition" rows="3" class="nexus-input w-full" style="min-height:80px;"></textarea>
             </div>
             <div>
                 <label class="block text-sm font-medium" style="color:var(--text-main);">Notes</label>
-                <textarea name="notes" rows="3" class="nexus-input" style="min-height:80px;"></textarea>
+                <textarea name="notes" rows="3" class="nexus-input w-full" style="min-height:80px;"></textarea>
             </div>
             
             <div class="flex items-center space-x-6">
@@ -960,7 +960,7 @@ body {
     <form id="add-inspector-form" onsubmit="app.defectTracker.handleAddInspector(event)">
       <div>
         <label class="block text-sm font-medium" style="color:var(--text-main);">Inspector Initials <span style="color:#ef4444;">*</span></label>
-        <input type="text" name="initials" required class="nexus-input" maxlength="12">
+        <input type="text" name="initials" required class="nexus-input w-full" maxlength="12">
       </div>
       <div style="padding-top:16px; display:flex; justify-content:flex-end; gap:8px;">
         <button type="button" class="btn" onclick="app.defectTracker.closeAddInspectorModal()">Cancel</button>
@@ -981,7 +981,7 @@ body {
       <input type="hidden" name="original" value="">
       <div>
         <label class="block text-sm font-medium" style="color:var(--text-main);">Inspector Initials <span style="color:#ef4444;">*</span></label>
-        <input type="text" name="initials" required class="nexus-input" maxlength="12">
+        <input type="text" name="initials" required class="nexus-input w-full" maxlength="12">
       </div>
       <div style="padding-top:16px; display:flex; justify-content:flex-end; gap:8px;">
         <button type="button" class="btn" onclick="app.defectTracker.closeEditInspectorModal()">Cancel</button>
@@ -1001,15 +1001,15 @@ body {
         <form id="add-part-form" class="space-y-4">
             <div>
                 <label class="block text-sm font-medium" style="color:var(--text-main);">Part <span style="color:#ef4444;">*</span></label>
-                <input type="text" name="partNumber" required class="nexus-input">
+                <input type="text" name="partNumber" required class="nexus-input w-full">
             </div>
             <div>
                 <label class="block text-sm font-medium" style="color:var(--text-main);">Part Desc. <span style="color:#ef4444;">*</span></label>
-                <input type="text" name="partName" required class="nexus-input">
+                <input type="text" name="partName" required class="nexus-input w-full">
             </div>
             <div>
                 <label class="block text-sm font-medium" style="color:var(--text-main);">Family <span style="color:#ef4444;">*</span></label>
-                <input type="text" name="family" required class="nexus-input">
+                <input type="text" name="family" required class="nexus-input w-full">
             </div>
             <div style="padding-top:16px; display:flex; justify-content:flex-end;">
                 <button type="submit" class="btn btn-primary">
@@ -1030,15 +1030,15 @@ body {
         <form id="edit-part-form" class="space-y-4">
             <div>
                 <label class="block text-sm font-medium" style="color:var(--text-main);">Part <span style="color:#ef4444;">*</span></label>
-                <input type="text" name="partNumber" required class="nexus-input">
+                <input type="text" name="partNumber" required class="nexus-input w-full">
             </div>
             <div>
                 <label class="block text-sm font-medium" style="color:var(--text-main);">Part Desc. <span style="color:#ef4444;">*</span></label>
-                <input type="text" name="partName" required class="nexus-input">
+                <input type="text" name="partName" required class="nexus-input w-full">
             </div>
             <div>
                 <label class="block text-sm font-medium" style="color:var(--text-main);">Family <span style="color:#ef4444;">*</span></label>
-                <input type="text" name="family" required class="nexus-input">
+                <input type="text" name="family" required class="nexus-input w-full">
             </div>
             <div style="padding-top:16px; display:flex; justify-content:flex-end;">
                 <button type="submit" class="btn btn-primary">
@@ -1095,7 +1095,7 @@ body {
         </div>
         <div class="report-controls" style="margin-bottom:12px;">
           <label style="color:var(--text-main); font-weight:700;">Group By</label>
-          <select id="report-groupby" class="nexus-input" style="width:160px;">
+          <select id="report-groupby" class="nexus-input w-full" style="width:160px;">
             <option value="family">Family</option>
             <option value="partNumber">Part Number</option>
             <option value="partName">Part Name</option>
@@ -4377,6 +4377,7 @@ document.addEventListener("visibilitychange", () => {
 </script>
 </body>
 </html>
+
 
 
 
